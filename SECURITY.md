@@ -28,7 +28,8 @@ We actively support the following versions of our repository:
 
 | Version | Supported          |
 |---------|--------------------|
-| v1.0.x  | :white_check_mark: |
+| v1.0.x  | :red_check_mark: |
+| v1.2.x  | :white_check_mark: |
 
 ## Security Updates
 
