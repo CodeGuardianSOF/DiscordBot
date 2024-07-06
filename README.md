@@ -1,6 +1,3 @@
-Sure! Here is the updated `README.md` with added installation instructions for Windows.
-
----
 
 # 🤖 Discord Bot
 
@@ -171,6 +168,3 @@ Contributions are welcome! Please fork the repository and submit a pull request.
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
----
-
-Feel free to customize this `README.md` further to suit your needs.
