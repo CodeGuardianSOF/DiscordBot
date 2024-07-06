@@ -7,21 +7,33 @@ A sophisticated Discord bot with multiple commands and logging capabilities. Con
 
 - 📝 **Logging:** Logs all activities to `logs/bot.log`.
 - ⚙️ **Configuration:** Easy configuration using `config.yaml`.
+- 🧰**Bot Owner Commands:**
+- `/shutdown` - Remotly shut the bot down.
+- `/status` - Check if but is working/online.
+- `/load <cog_name>` - Load a cog, name must be like cogs.fun,cogs.moderation etc.
+- `/unload <cog_name>` - Unload a cog, name must be like cogs.fun,cogs.moderation etc. Note this command will make the commands the cog has unusable.
+- `/reload <cog_name>` - Reload a cog, name must be like cogs.fun,cogs.moderation etc.
 - 🛡️ **Moderation Commands:**
-  - `/ping` - Check bot's latency.
-  - `/ban <user>` - Ban a user.
-  - `/kick <user>` - Kick a user.
-  - `/mute <user>` - Mute a user.
-  - `/unban <user>` - Unban a user.
-  - `/unmute <user>` - Unmute a user.
+  - `/ban <user> <reason>` - Ban a user.
+  - `/kick <user> <reason>` - Kick a user.
+  - `/mute <user> <duration>` - Mute a user.
+  - `/unban <user> <note>` - Unban a user.
 - 🎲 **Fun Commands:**
   - `/roll` - Roll a dice.
   - `/8ball <question>` - Get answers from the magic 8-ball.
+  - `/fact` - Get a random fact.
+  - `/joke` - Get a random joke.
+  - `/rps <choice>` - Play rock-paper-scissors with the bot.
+  - `/trivia` - Get a random trivia question.
+  - `/answer <answer>` - Answer the trivia question. Must use the trivia command first.
 - 🔍 **Utility Commands:**
   - `/userinfo <user>` - Get information about a user.
   - `/serverinfo` - Get information about the server.
   - `/avatar <user>` - Get the avatar of a user.
-  - `/weather <city>` - Get the current weather for a city.
+  - `/ping` - Check bot's latency.
+  - `/poll <question> <option1> <option2>` - Creates a poll, supports up to 8 options.
+  - `/remindme <duration>  <message>` - Reminds a user on a specific time, with a custom message.
+  - `/roleinfo <role>` - Get info about a specific role.
 
 ## 📦 Installation
 
