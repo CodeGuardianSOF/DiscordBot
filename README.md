@@ -66,6 +66,7 @@ A sophisticated Discord bot with multiple commands and logging capabilities. Con
    ```bash
    python main.py
    ```
+For setup tutorial for linux and windows go to [setup](https://github.com/CodeGuardianSOF/DiscordBot/blob/main/README.md#-setup-tutorial-on-linux)
 
 ## 📄 Logging
 
