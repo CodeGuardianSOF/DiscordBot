@@ -198,4 +198,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## 🟢 Changelog
 
-All changes will be logged in the Changelog page [Changelog](.github/CHANGELOG.md)
+All changes will be logged in the Changelog page [Changelog](CHANGELOG.md)
