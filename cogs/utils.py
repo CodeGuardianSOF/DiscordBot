@@ -124,15 +124,6 @@ class UtilsCog(commands.GroupCog, name="utils"):
             logging.exception("Failed to get avatar")
             await interaction.response.send_message(f"An error occurred while retrieving the avatar: {e}", ephemeral=True)
 
-    @app_commands.command(name="health", description="Check the bot's health status")
-    async def health(self, interaction: discord.Interaction):
-        """Checks the bot's health status."""
-        try:
-            await interaction.response.send_message("Bot is up and running!", ephemeral=True)
-        except Exception as e:
-            logging.exception("Health check failed")
-            await interaction.response.send_message(f"An error occurred during the health check: {e}", ephemeral=True)
-
     @app_commands.command(name="ping", description="Check the bot's latency")
     @app_commands.checks.cooldown(1, 5.0, key=lambda i: i.user.id)
     async def ping(self, interaction: discord.Interaction):
