@@ -1,0 +1,24 @@
+2024-07-06 15:48:41,043 - __main__ - DEBUG - Initializing MyBot
+2024-07-06 15:48:41,043 - discord.client - DEBUG - on_ready has successfully been registered as an event
+2024-07-06 15:48:41,043 - asyncio - DEBUG - Using proactor: IocpProactor
+2024-07-06 15:48:41,061 - discord.client - INFO - logging in using static token
+2024-07-06 15:48:42,295 - __main__ - DEBUG - Running setup_hook
+2024-07-06 15:48:42,648 - __main__ - INFO - Sync command added and tree synced
+2024-07-06 15:48:42,664 - __main__ - DEBUG - Loading extensions
+2024-07-06 15:48:42,664 - __main__ - DEBUG - Loading extension: cogs.fun
+2024-07-06 15:48:42,673 - root - DEBUG - FunCog initialized
+2024-07-06 15:48:42,673 - __main__ - DEBUG - Loading extension: cogs.moderation
+2024-07-06 15:48:42,716 - root - DEBUG - ModerationCog initialized
+2024-07-06 15:48:42,716 - __main__ - DEBUG - Loading extension: cogs.owner_tools
+2024-07-06 15:48:42,723 - root - DEBUG - OwnerToolsCog initialized
+2024-07-06 15:48:42,723 - __main__ - DEBUG - Loading extension: cogs.utils
+2024-07-06 15:48:42,764 - root - DEBUG - UtilsCog initialized
+2024-07-06 15:48:42,766 - root - DEBUG - UtilsCog loaded
+2024-07-06 15:48:42,767 - __main__ - INFO - Extensions loaded
+2024-07-06 15:48:43,282 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: cbf3613ccbe74cf83163cb1e3378f9b3).
+2024-07-06 15:48:45,377 - __main__ - INFO - Logged in as FriendlyMessagerBot#6052 (ID: 1258369461459615765)
+2024-07-06 15:48:45,377 - __main__ - DEBUG - Bot is ready
+2024-07-06 15:48:45,383 - __main__ - DEBUG - Updating status
+2024-07-06 15:48:45,395 - __main__ - INFO - Status updated
+2024-07-06 15:48:49,130 - __main__ - INFO - Received shutdown signal
+2024-07-06 15:48:49,130 - __main__ - INFO - Shutting down bot
