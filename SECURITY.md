@@ -1,12 +1,9 @@
-Certainly! Creating a comprehensive and fancy security policy for your GitHub repository is essential to ensuring that contributors and users understand the security practices and guidelines. Below is an example of a detailed security policy that you can customize according to your specific needs.
-
----
 
 # Security Policy
 
 ## Overview
 
-At [Your Repository Name], we take security seriously. This security policy outlines our practices and procedures for handling vulnerabilities and security issues. We aim to foster a safe environment for our users and contributors by maintaining a proactive approach to security.
+At DiscordBot, we take security seriously. This security policy outlines our practices and procedures for handling vulnerabilities and security issues. We aim to foster a safe environment for our users and contributors by maintaining a proactive approach to security.
 
 ## Reporting a Vulnerability
 
