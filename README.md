@@ -1,6 +1,6 @@
 # 🤖 Discord Bot
 
-A sophisticated Discord bot with multiple commands and logging capabilities, configurable via a `config.yaml` file.
+A sophisticated Discord bot with multiple commands and logging capabilities, writen in python, configurable via a `config.yaml` file.
 
 ## ✨ Features
 
