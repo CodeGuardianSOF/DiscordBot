@@ -10,11 +10,6 @@ class FunCog(commands.GroupCog, name="fun"):
         self.bot = bot
         logging.debug("FunCog initialized")
 
-    @app_commands.command(name="ping", description="Check the bot's latency")
-    @app_commands.checks.cooldown(1, 5.0, key=lambda i: i.user.id)
-    async def ping(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f'Pong! {round(self.bot.latency * 1000)}ms', ephemeral=True)
-
     @app_commands.command(name="roll", description="Roll a dice")
     @app_commands.checks.cooldown(1, 5.0, key=lambda i: i.user.id)
     async def roll(self, interaction: discord.Interaction, sides: int = 6):
