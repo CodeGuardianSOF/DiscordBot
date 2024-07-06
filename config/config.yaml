@@ -1,0 +1,9 @@
+bot:
+  token: 'MTI1ODM2OTQ2MTQ1OTYxNTc2NQ.GWsf4q.ShG3ddpc7qDeI1q4WJYV5VYYMoyTFriAhNfhMY'
+  owner_id: 1055604443070079026
+  command_prefix: '!'
+  status_update_interval: 10
+
+logging:
+  level: 'DEBUG'
+  file: 'logs/bot.log'
