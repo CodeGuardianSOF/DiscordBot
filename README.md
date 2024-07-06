@@ -13,6 +13,8 @@ A sophisticated Discord bot with multiple commands and logging capabilities. Con
   - `/load <cog_name>` - Load a cog, name must be like cogs.fun,cogs.moderation etc.
   - `/unload <cog_name>` - Unload a cog, name must be like cogs.fun,cogs.moderation etc. Note this command will make the commands from the cog unusable.
   - `/reload <cog_name>` - Reload a cog, name must be like cogs.fun,cogs.moderation etc.
+  - `/sync` - This command is esential for the bots commands to appear. Whenever you run the bot you must first use the sync command and reload your browser, or reopen your app.
+  - 
 - 🛡️ **Moderation Commands:**
   - `/ban <user> <reason>` - Ban a user.
   - `/kick <user> <reason>` - Kick a user.
