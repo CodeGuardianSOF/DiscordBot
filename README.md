@@ -67,29 +67,6 @@ A sophisticated Discord bot with multiple commands and logging capabilities. Con
    python bot.py
    ```
 
-## 🔧 Commands
-
-### Moderation Commands
-
-- `/ping`: Checks the bot's latency.
-- `/ban <user>`: Bans the specified user.
-- `/kick <user>`: Kicks the specified user.
-- `/mute <user>`: Mutes the specified user.
-- `/unban <user>`: Unbans the specified user.
-- `/unmute <user>`: Unmutes the specified user.
-
-### Fun Commands
-
-- `/roll`: Rolls a dice and returns a random number between 1 and 6.
-- `/8ball <question>`: Provides an answer to a yes/no question using the magic 8-ball.
-
-### Utility Commands
-
-- `/userinfo <user>`: Gets information about a user.
-- `/serverinfo`: Gets information about the server.
-- `/avatar <user>`: Gets the avatar of a user.
-- `/weather <city>`: Gets the current weather for a city.
-
 ## 📄 Logging
 
 All bot activities are logged in the `logs/bot.log` file. Make sure to check this file for debugging and monitoring bot activities.
