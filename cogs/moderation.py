@@ -3,7 +3,6 @@ from discord import app_commands
 from discord.ext import commands
 import logging
 import asyncio
-from datetime import datetime, timedelta
 
 class ModerationCog(commands.GroupCog, name="moderation"):
     def __init__(self, bot):
@@ -11,23 +10,49 @@ class ModerationCog(commands.GroupCog, name="moderation"):
         self.bot = bot
         logging.debug("ModerationCog initialized")
 
+    async def cog_check(self, interaction):
+        return interaction.guild is not None
+
+    async def cog_app_command_error(self, interaction, error):
+        if isinstance(error, app_commands.MissingPermissions):
+            await interaction.response.send_message("You do not have the required permissions to use this command.", ephemeral=True)
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(f"This command is on cooldown. Try again after {error.retry_after:.2f} seconds.", ephemeral=True)
+        else:
+            logging.error(f"An error occurred: {error}")
+            await interaction.response.send_message("An unexpected error occurred. Please try again later.", ephemeral=True)
+
+    async def is_authorized(self, interaction, target_member):
+        if interaction.user.top_role <= target_member.top_role:
+            await interaction.response.send_message(f"❌ You cannot moderate {target_member.mention} due to role hierarchy.", ephemeral=True)
+            return False
+        if target_member == interaction.user:
+            await interaction.response.send_message("❌ You cannot moderate yourself.", ephemeral=True)
+            return False
+        return True
+
     @app_commands.command(name="kick", description="Kick a member from the server")
     @app_commands.checks.has_permissions(kick_members=True)
     @app_commands.checks.cooldown(1, 5.0, key=lambda i: i.user.id)
     async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
-        dm_embed = discord.Embed(
-            title="⚠️ You have been kicked!",
-            description=f'You have been kicked from **{interaction.guild.name}** for: **{reason}**',
-            color=discord.Color.red()
-        )
-        if interaction.guild.icon:
-            dm_embed.set_thumbnail(url=interaction.guild.icon.url)
-        dm_embed.set_footer(text="Contact an admin if you think this is a mistake.")
+        if not await self.is_authorized(interaction, member):
+            return
 
-        try:
-            await member.send(embed=dm_embed)
-        except discord.Forbidden:
-            logging.warning(f"Failed to send DM to {member}")
+        if not member.bot:
+            dm_embed = discord.Embed(
+                title="⚠️ You have been kicked!",
+                description=f'You have been kicked from **{interaction.guild.name}** for: **{reason}**',
+                color=discord.Color.red()
+            )
+            if interaction.guild.icon:
+                dm_embed.set_thumbnail(url=interaction.guild.icon.url)
+            dm_embed.set_footer(text="Contact an admin if you think this is a mistake.")
+
+            try:
+                await member.send(embed=dm_embed)
+            except discord.Forbidden:
+                logging.warning(f"Failed to send DM to {member}")
+                await interaction.followup.send(f"❌ Could not DM {member.mention} about the kick.", ephemeral=True)
 
         try:
             await member.kick(reason=reason)
@@ -51,19 +76,24 @@ class ModerationCog(commands.GroupCog, name="moderation"):
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.checks.cooldown(1, 5.0, key=lambda i: i.user.id)
     async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
-        dm_embed = discord.Embed(
-            title="⚠️ You have been banned!",
-            description=f'You have been banned from **{interaction.guild.name}** for: **{reason}**',
-            color=discord.Color.red()
-        )
-        if interaction.guild.icon:
-            dm_embed.set_thumbnail(url=interaction.guild.icon.url)
-        dm_embed.set_footer(text="Contact an admin if you think this is a mistake.")
+        if not await self.is_authorized(interaction, member):
+            return
 
-        try:
-            await member.send(embed=dm_embed)
-        except discord.Forbidden:
-            logging.warning(f"Failed to send DM to {member}")
+        if not member.bot:
+            dm_embed = discord.Embed(
+                title="⚠️ You have been banned!",
+                description=f'You have been banned from **{interaction.guild.name}** for: **{reason}**',
+                color=discord.Color.red()
+            )
+            if interaction.guild.icon:
+                dm_embed.set_thumbnail(url=interaction.guild.icon.url)
+            dm_embed.set_footer(text="Contact an admin if you think this is a mistake.")
+
+            try:
+                await member.send(embed=dm_embed)
+            except discord.Forbidden:
+                logging.warning(f"Failed to send DM to {member}")
+                await interaction.followup.send(f"❌ Could not DM {member.mention} about the ban.", ephemeral=True)
 
         try:
             await member.ban(reason=reason)
@@ -86,13 +116,13 @@ class ModerationCog(commands.GroupCog, name="moderation"):
     @app_commands.command(name="unban", description="Unban a member from the server")
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.checks.cooldown(1, 5.0, key=lambda i: i.user.id)
-    async def unban(self, interaction: discord.Interaction, user_id: str, *, reason: str = "No reason provided"):
+    async def unban(self, interaction: discord.Interaction, user_id: str, *, note: str = "No note provided"):
         logging.debug(f"Received unban command for user ID: {user_id}")
         try:
             user_id_int = int(user_id)
             user = await self.bot.fetch_user(user_id_int)
             logging.debug(f"Fetched user: {user}")
-            await interaction.guild.unban(user, reason=reason)
+            await interaction.guild.unban(user, reason=note)
             unban_embed = discord.Embed(
                 title="✅ Member Unbanned",
                 description=f'{user.mention} has been unbanned.',
@@ -102,18 +132,21 @@ class ModerationCog(commands.GroupCog, name="moderation"):
                 unban_embed.set_thumbnail(url=user.avatar.url)
             unban_embed.set_footer(text="Unban executed successfully.")
             await interaction.response.send_message(embed=unban_embed, ephemeral=True)
-            try:
-                dm_embed = discord.Embed(
-                    title="✅ You have been unbanned!",
-                    description=f'You have been unbanned from **{interaction.guild.name}**.',
-                    color=discord.Color.green()
-                )
-                if interaction.guild.icon:
-                    dm_embed.set_thumbnail(url=interaction.guild.icon.url)
-                dm_embed.set_footer(text="Welcome back!")
-                await user.send(embed=dm_embed)
-            except discord.Forbidden:
-                logging.warning(f"Failed to send DM to {user}")
+
+            if not user.bot:
+                try:
+                    dm_embed = discord.Embed(
+                        title="✅ You have been unbanned!",
+                        description=f'You have been unbanned from **{interaction.guild.name}**. Note: **{note}**.',
+                        color=discord.Color.green()
+                    )
+                    if interaction.guild.icon:
+                        dm_embed.set_thumbnail(url=interaction.guild.icon.url)
+                    dm_embed.set_footer(text="Welcome back!")
+                    await user.send(embed=dm_embed)
+                except discord.Forbidden:
+                    logging.warning(f"Failed to send DM to {user}")
+                    await interaction.followup.send(f"❌ Could not DM {user.mention} about the unban.", ephemeral=True)
         except ValueError:
             logging.error(f"Invalid user ID: {user_id}")
             await interaction.response.send_message(f'❌ Invalid user ID. Please ensure you entered a valid 18-digit integer.', ephemeral=True)
@@ -131,9 +164,12 @@ class ModerationCog(commands.GroupCog, name="moderation"):
     @app_commands.checks.has_permissions(manage_roles=True)
     @app_commands.checks.cooldown(1, 5.0, key=lambda i: i.user.id)
     async def mute(self, interaction: discord.Interaction, member: discord.Member, duration: str, reason: str = "No reason provided"):
-        mute_role = discord.utils.get(interaction.guild.roles, name="Muted")
+        if not await self.is_authorized(interaction, member):
+            return
+
+        mute_role = await self.create_mute_role(interaction.guild)
         if not mute_role:
-            await interaction.response.send_message("❌ Muted role not found.", ephemeral=True)
+            await interaction.response.send_message("❌ Failed to create/find Muted role.", ephemeral=True)
             return
 
         try:
@@ -148,15 +184,19 @@ class ModerationCog(commands.GroupCog, name="moderation"):
             mute_embed.set_footer(text="Mute executed successfully.")
             await interaction.response.send_message(embed=mute_embed, ephemeral=True)
 
-            # Parse duration
             duration_seconds = self.parse_duration(duration)
-            if duration_seconds is None:
-                await interaction.response.send_message("❌ Invalid duration format. Please use '1h', '10m', etc.", ephemeral=True)
-                return
+            await asyncio.sleep(duration_seconds)
+            await member.remove_roles(mute_role, reason="Mute duration expired")
 
-            # Schedule unmute
-            await self.schedule_unmute(member, interaction.guild, duration_seconds, reason)
-
+            unmute_embed = discord.Embed(
+                title="🔊 Member Unmuted",
+                description=f'{member.mention} has been unmuted.',
+                color=discord.Color.green()
+            )
+            if member.avatar:
+                unmute_embed.set_thumbnail(url=member.avatar.url)
+            unmute_embed.set_footer(text="Mute duration expired.")
+            await interaction.followup.send(embed=unmute_embed, ephemeral=True)
         except discord.Forbidden as e:
             logging.error(f"Failed to mute {member.mention}: {e}")
             await interaction.response.send_message(f'❌ Failed to mute {member.mention}: Insufficient permissions.', ephemeral=True)
@@ -164,39 +204,13 @@ class ModerationCog(commands.GroupCog, name="moderation"):
             logging.error(f"Failed to mute {member.mention}: {e}")
             await interaction.response.send_message(f'❌ Failed to mute {member.mention}: An unexpected error occurred.', ephemeral=True)
 
-    def parse_duration(self, duration: str):
-        """Parse duration string and return the duration in seconds."""
-        try:
-            unit = duration[-1]
-            amount = int(duration[:-1])
-            if unit == 'h':
-                return amount * 3600
-            elif unit == 'm':
-                return amount * 60
-            elif unit == 's':
-                return amount
-            else:
-                return None
-        except (ValueError, IndexError):
-            return None
-
-    async def schedule_unmute(self, member: discord.Member, guild: discord.Guild, duration_seconds: int, reason: str):
-        """Schedule unmute task."""
-        await asyncio.sleep(duration_seconds)
-        mute_role = discord.utils.get(guild.roles, name="Muted")
-        if mute_role:
-            try:
-                await member.remove_roles(mute_role, reason=reason)
-                logging.debug(f"Unmuted {member.mention} after duration.")
-            except discord.Forbidden as e:
-                logging.error(f"Failed to unmute {member.mention}: {e}")
-            except Exception as e:
-                logging.error(f"Failed to unmute {member.mention}: {e}")
-
     @app_commands.command(name="unmute", description="Unmute a member in the server")
     @app_commands.checks.has_permissions(manage_roles=True)
     @app_commands.checks.cooldown(1, 5.0, key=lambda i: i.user.id)
     async def unmute(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
+        if not await self.is_authorized(interaction, member):
+            return
+
         mute_role = discord.utils.get(interaction.guild.roles, name="Muted")
         if not mute_role:
             await interaction.response.send_message("❌ Muted role not found.", ephemeral=True)
@@ -220,7 +234,30 @@ class ModerationCog(commands.GroupCog, name="moderation"):
             logging.error(f"Failed to unmute {member.mention}: {e}")
             await interaction.response.send_message(f'❌ Failed to unmute {member.mention}: An unexpected error occurred.', ephemeral=True)
 
-async def setup(bot: commands.Bot):
+    def parse_duration(self, duration: str):
+        units = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+        unit = duration[-1]
+        if unit in units:
+            try:
+                value = int(duration[:-1])
+                return value * units[unit]
+            except ValueError:
+                return None
+        return None
+
+    async def create_mute_role(self, guild):
+        mute_role = discord.utils.get(guild.roles, name="Muted")
+        if mute_role is None:
+            try:
+                mute_role = await guild.create_role(name="Muted", reason="Mute role created for muting members.")
+                for channel in guild.channels:
+                    await channel.set_permissions(mute_role, speak=False, send_messages=False, read_message_history=True, read_messages=False)
+            except discord.Forbidden as e:
+                logging.error(f"Failed to create Muted role in {guild.name}: {e}")
+                return None
+        return mute_role
+
+async def setup(bot):
     await bot.add_cog(ModerationCog(bot))
 
 # Setup logging
