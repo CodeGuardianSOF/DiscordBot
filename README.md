@@ -122,7 +122,7 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
 6. **Run the bot:**
 
    ```bash
-   python3 bot.py
+   python3 main.py
    ```
 
 ## 🪟 Setup Tutorial on Windows
