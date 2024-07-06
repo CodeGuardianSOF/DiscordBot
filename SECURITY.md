@@ -13,7 +13,7 @@ At [Your Repository Name], we take security seriously. This security policy outl
 If you discover a vulnerability in our repository, we appreciate your help in disclosing it to us responsibly. Please follow these steps to report a security issue:
 
 1. **Do not create a public issue.**
-2. **Send an email to our security team at [securex39@gmail.com](mailto:securex39@gmail.com).**
+2. **Send an email to our security team at [codeguardiantm@gmail.com](mailto:[codeguardiantm@gmail.com).**
 3. Include as much detail as possible, such as:
    - A detailed description of the vulnerability.
    - Steps to reproduce the issue.
@@ -64,7 +64,7 @@ We believe in responsible disclosure of vulnerabilities. If you adhere to respon
 
 For any security-related queries or concerns, please contact us at:
 
-**Email:** [securex39@gmail.com](mailto:securex39@gmail.com)
+**Email:** [codeguardiantm@gmail.com](mailto:[codeguardiantm@gmail.com)
 
 We value your input and appreciate your efforts in keeping our repository secure.
 
