@@ -1,0 +1,92 @@
+name: 🔒 Security Issue
+description: Confidentially report a security vulnerability
+title: "[SECURITY] <title>"
+labels: ["security"]
+body:
+- type: checkboxes
+  attributes:
+    label: Is there an existing issue for this?
+    description: Please search to see if a security issue already exists for the vulnerability you encountered.
+    options:
+    - label: I have searched the existing issues
+      required: true
+- type: dropdown
+  attributes:
+    label: Python Version
+    description: What version of Python are you using?
+    options:
+      - 2.7
+      - 3.6
+      - 3.7
+      - 3.8
+      - 3.9
+      - 3.10
+      - 3.11
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: Operating System
+    description: What operating system are you using?
+    options:
+      - Windows
+      - macOS
+      - Linux
+      - Other
+  validations:
+    required: true
+- type: input
+  attributes:
+    label: Software Version
+    description: What version of the software are you using?
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Description of the Vulnerability
+    description: Provide a detailed description of the vulnerability, including its nature and potential impact.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Steps to Reproduce
+    description: |
+      Provide clear and detailed steps to reproduce the vulnerability:
+      1. Step one
+      2. Step two
+      3. Step three
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Impact
+    description: Describe the impact of the vulnerability. What could happen if this vulnerability is exploited?
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Expected Behavior
+    description: Explain what you expected to happen if the vulnerability were not present.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Actual Behavior
+    description: Describe what actually happens when the vulnerability is exploited.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Mitigation
+    description: Describe any suggested fixes, workarounds, or steps to mitigate the vulnerability. Include code snippets or configuration changes if applicable.
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Additional Information
+    description: |
+      Provide any other context about the problem here. Include references, related issues, or external resources if available.
+
+      Tip: You can attach images or log files by clicking this area to highlight it and then dragging files in.
+  validations:
+    required: false
