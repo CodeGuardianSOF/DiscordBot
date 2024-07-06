@@ -23,5 +23,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Remind me cannot tag roles now to prevent spamming.
 
 ### Fixed
-
- - Unban command not sending dms.
