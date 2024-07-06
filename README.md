@@ -11,7 +11,7 @@ A sophisticated Discord bot with multiple commands and logging capabilities. Con
   - `/shutdown` - Remotly shut the bot down.
   - `/status` - Check if but is working/online.
   - `/load <cog_name>` - Load a cog, name must be like cogs.fun,cogs.moderation etc.
-  - `/unload <cog_name>` - Unload a cog, name must be like cogs.fun,cogs.moderation etc. Note this command will make the commands the cog has unusable.
+  - `/unload <cog_name>` - Unload a cog, name must be like cogs.fun,cogs.moderation etc. Note this command will make the commands from the cog has unusable.
   - `/reload <cog_name>` - Reload a cog, name must be like cogs.fun,cogs.moderation etc.
 - 🛡️ **Moderation Commands:**
   - `/ban <user> <reason>` - Ban a user.
