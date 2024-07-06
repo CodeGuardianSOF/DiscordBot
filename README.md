@@ -64,7 +64,7 @@ A sophisticated Discord bot with multiple commands and logging capabilities. Con
 4. **Run the bot:**
 
    ```bash
-   python bot.py
+   python start.py
    ```
 
 ## 📄 Logging
