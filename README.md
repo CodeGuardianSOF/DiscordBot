@@ -35,7 +35,7 @@ A sophisticated Discord bot with multiple commands and logging capabilities. Con
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/AlexAlex112233/DiscordBot.git
+   git clone https://github.com/CodeGuardianSOF/DiscordBot.git
    cd DiscordBot
    ```
 
@@ -105,7 +105,7 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
 3. **Clone the GitHub repository:**
 
    ```bash
-   git clone https://github.com/AlexAlex112233/DiscordBot.git
+   git clone https://github.com/CodeGuardianSOF/DiscordBot.git
    cd DiscordBot
    ```
 
@@ -122,7 +122,7 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
 6. **Run the bot:**
 
    ```bash
-   python3 bot.py
+   python3 main.py
    ```
 
 ## 🪟 Setup Tutorial on Windows
@@ -140,7 +140,7 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
    Open Command Prompt and run:
 
    ```bash
-   git clone https://github.com/AlexAlex112233/DiscordBot.git
+   git clone https://github.com/CodeGuardianSOF/DiscordBot.git
    cd DiscordBot
    ```
 
