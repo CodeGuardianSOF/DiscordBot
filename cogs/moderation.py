@@ -15,20 +15,39 @@ class ModerationCog(commands.GroupCog, name="moderation"):
 
     @commands.Cog.listener()
     async def on_command_error(self, interaction: Interaction, error: commands.CommandError):
+        if interaction.response.is_done():
+            return
+
+        embed = discord.Embed(
+            title="❌ Error",
+            color=discord.Color.red()
+        )
         if isinstance(error, commands.MissingPermissions):
-            await interaction.response.send_message("You do not have the required permissions to use this command.", ephemeral=True)
+            embed.description = "You do not have the required permissions to use this command."
         elif isinstance(error, commands.CommandOnCooldown):
-            await interaction.response.send_message(f"This command is on cooldown. Try again after {error.retry_after:.2f} seconds.", ephemeral=True)
+            embed.description = f"This command is on cooldown. Try again after {error.retry_after:.2f} seconds."
         else:
             logging.error(f"An error occurred: {error}")
-            await interaction.response.send_message("An unexpected error occurred. Please try again later.", ephemeral=True)
+            embed.description = "An unexpected error occurred. Please try again later."
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def is_authorized(self, interaction: Interaction, target_member: discord.Member):
         if interaction.user.top_role <= target_member.top_role:
-            await interaction.response.send_message(f"❌ You cannot moderate {target_member.mention} due to role hierarchy.", ephemeral=True)
+            embed = discord.Embed(
+                title="❌ Unauthorized",
+                description=f"You cannot moderate {target_member.mention} due to role hierarchy.",
+                color=discord.Color.red()
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
             return False
         if target_member == interaction.user:
-            await interaction.response.send_message("❌ You cannot moderate yourself.", ephemeral=True)
+            embed = discord.Embed(
+                title="❌ Unauthorized",
+                description="You cannot moderate yourself.",
+                color=discord.Color.red()
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
             return False
         return True
 
