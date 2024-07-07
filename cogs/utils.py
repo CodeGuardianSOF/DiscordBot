@@ -82,12 +82,13 @@ class UtilsCog(commands.GroupCog, name="utils"):
         """Gets information about a specific user."""
         try:
             embed = discord.Embed(title=f"{member.name}'s Info", color=discord.Color.blue())
-            embed.set_thumbnail(url=member.avatar.url)
+            avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
+            embed.set_thumbnail(url=avatar_url)
             embed.add_field(name="ID", value=member.id, inline=False)
             embed.add_field(name="Joined", value=member.joined_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
             embed.add_field(name="Account Created", value=member.created_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
             embed.add_field(name="Roles", value=", ".join([role.name for role in member.roles if role.name != "@everyone"]), inline=False)
-            embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url)
+            embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url if interaction.user.avatar else interaction.user.default_avatar.url)
             await interaction.response.send_message(embed=embed, ephemeral=True)
         except Exception as e:
             logging.exception("Failed to get user info")
@@ -100,14 +101,16 @@ class UtilsCog(commands.GroupCog, name="utils"):
         guild = interaction.guild
         try:
             embed = discord.Embed(title=f"{guild.name}'s Info", color=discord.Color.green())
-            embed.set_thumbnail(url=guild.icon.url)
+            icon_url = str(guild.icon.url) if guild.icon else ""
+            embed.set_thumbnail(url=icon_url)
             embed.add_field(name="ID", value=guild.id, inline=False)
             embed.add_field(name="Owner", value=guild.owner.mention, inline=False)
             embed.add_field(name="Member Count", value=guild.member_count, inline=False)
             embed.add_field(name="Roles", value=", ".join([role.name for role in guild.roles if role.name != "@everyone"]), inline=False)
             embed.add_field(name="Created On", value=guild.created_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
-            embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url)
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            user_avatar_url = str(interaction.user.avatar.url) if interaction.user.avatar else str(interaction.user.default_avatar.url)
+            embed.set_footer(text=f"Requested by {interaction.user}", icon_url=user_avatar_url)
+            await interaction.response.send_message(embed=embed)
         except Exception as e:
             logging.exception("Failed to get server info")
             await interaction.response.send_message(f"An error occurred while retrieving server info: {e}", ephemeral=True)
@@ -117,8 +120,9 @@ class UtilsCog(commands.GroupCog, name="utils"):
     async def avatar(self, interaction: discord.Interaction, member: discord.Member):
         """Gets the avatar of a specific user."""
         try:
+            avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
             embed = discord.Embed(title=f"{member.name}'s Avatar", color=discord.Color.purple())
-            embed.set_image(url=member.avatar.url)
+            embed.set_image(url=avatar_url)
             await interaction.response.send_message(embed=embed, ephemeral=True)
         except Exception as e:
             logging.exception("Failed to get avatar")
@@ -144,7 +148,7 @@ class UtilsCog(commands.GroupCog, name="utils"):
             embed.add_field(name="Text Channels", value=len(guild.text_channels), inline=False)
             embed.add_field(name="Voice Channels", value=len(guild.voice_channels), inline=False)
             embed.add_field(name="Roles", value=len(guild.roles), inline=False)
-            embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url)
+            embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url if interaction.user.avatar else interaction.user.default_avatar.url)
             await interaction.response.send_message(embed=embed)
         except Exception as e:
             logging.exception("Failed to get server stats")
@@ -161,12 +165,12 @@ class UtilsCog(commands.GroupCog, name="utils"):
             embed.add_field(name="Position", value=role.position, inline=False)
             embed.add_field(name="Mentionable", value=role.mentionable, inline=False)
             embed.add_field(name="Members", value=len(role.members), inline=False)
-            embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url)
+            user_avatar_url = str(interaction.user.avatar.url) if interaction.user.avatar else str(interaction.user.default_avatar.url)
+            embed.set_footer(text=f"Requested by {interaction.user}", icon_url=user_avatar_url)
             await interaction.response.send_message(embed=embed)
         except Exception as e:
             logging.exception("Failed to get role info")
             await interaction.response.send_message(f"An error occurred while retrieving role info: {e}", ephemeral=True)
-
     @remindme.error
     @poll.error
     @userinfo.error
