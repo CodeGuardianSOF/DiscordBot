@@ -14,6 +14,8 @@ install_packages () {
     elif command_exists brew; then
         brew update
         brew install python3 git || { echo "Failed to install packages with brew"; exit 1; }
+    elif command_exists yum; then
+        sudo yum install -y python3 python3-venv python3-pip git || { echo "Failed to install packages with yum"; exit 1; }
     else
         echo "Package manager not supported. Install Python 3, pip, and git manually."
         exit 1
@@ -38,8 +40,19 @@ configure_bot () {
     echo "Configuring the bot..."
     if [ ! -f "config/config.yaml" ]; then
         echo "Configuration file 'config/config.yaml' not found."
-        echo "Please create or edit the 'config/config.yaml' file with your configuration."
-        nano config/config.yaml  # or any editor you prefer
+        read -p "Do you want to edit the 'config.yaml' file now? (y/n) " choice
+        case "$choice" in
+            y|Y ) nano config/config.yaml ;;
+            n|N ) echo "Skipping configuration editing. Make sure to create and edit 'config.yaml' before running the bot." ;;
+            * ) echo "Invalid choice. Exiting."; exit 1 ;;
+        esac
+    else
+        read -p "Do you want to edit the existing 'config/config.yaml' file now? (y/n) " choice
+        case "$choice" in
+            y|Y ) nano config/config.yaml ;;
+            n|N ) echo "Skipping configuration editing." ;;
+            * ) echo "Invalid choice. Exiting."; exit 1 ;;
+        esac
     fi
 }
 
@@ -53,7 +66,7 @@ create_run_script () {
 source venv/bin/activate
 
 # Run the bot
-python main.py
+python your_bot_script.py
 EOL
     chmod +x run.sh || { echo "Failed to make run.sh executable"; exit 1; }
 }
@@ -119,3 +132,4 @@ main () {
 
 # Execute the main function
 main "$@"
+
