@@ -95,7 +95,11 @@ class MyBot(commands.Bot):
                 "Listening to music",
                 "Watching a movie",
                 "Coding a bot",
-                "Reading a book"
+                "Reading a book",
+                "Getting repaired",
+                "Coding myself",
+                "Maintaining Servers",
+                "Watching Anime"
             ]
             await self.change_presence(activity=discord.Game(random.choice(statuses)))
             logger.info("Status updated")
