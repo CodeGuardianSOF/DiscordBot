@@ -20,17 +20,25 @@ command_exists () {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Function to check if nano is installed
+check_nano () {
+    if ! command_exists nano; then
+        error_log "nano is not installed. Please install nano before running this script."
+        exit 1
+    fi
+}
+
 # Function to install system packages
 install_packages () {
     info_log "Installing system packages..."
     if command_exists apt-get; then
         sudo apt-get update
         sudo apt-get install -y python3 python3-venv python3-pip git nano || { error_log "Failed to install packages with apt-get"; exit 1; }
+    elif command_exists yum; then
+        sudo yum install -y python3 python3-venv python3-pip git nano || { error_log "Failed to install packages with yum"; exit 1; }
     elif command_exists brew; then
         brew update
         brew install python3 git nano || { error_log "Failed to install packages with brew"; exit 1; }
-    elif command_exists yum; then
-        sudo yum install -y python3 python3-venv python3-pip git nano || { error_log "Failed to install packages with yum"; exit 1; }
     else
         error_log "Package manager not supported. Install Python 3, pip, git, and nano manually."
         exit 1
@@ -53,12 +61,13 @@ setup_virtualenv () {
 # Function to configure the bot
 configure_bot () {
     info_log "Configuring the bot..."
+    check_nano
     if [ ! -f "$CONFIG_FILE" ]; then
-        ask_question "Configuration file '$CONFIG_FILE' not found. Do you want to edit the 'config.yaml' file now? (y/n)"
+        ask_question "Configuration file '$CONFIG_FILE' not found. Do you want to create and edit 'config.yaml' now? (y/n)"
         read -p "" choice
         case "$choice" in
             y|Y ) nano config/config.yaml ;;
-            n|N ) error_log "Skipping configuration editing. Make sure to create and edit '$CONFIG_FILE' before running the bot." ;;
+            n|N ) error_log "Skipping configuration editing. Make sure to create and edit '$CONFIG_FILE' before running the bot."; exit 1 ;;
             * ) error_log "Invalid choice. Exiting."; exit 1 ;;
         esac
     else
