@@ -147,35 +147,29 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
 
    Make sure your macOS is up to date.
 
-2. **Install Python 3.7+:**
-
-   ```bash
-   brew install python3
-   ```
-
-3. **Clone the GitHub repository:**
-
-   Open Terminal and run:
+2. **Clone the GitHub repository:**
 
    ```bash
    git clone https://github.com/CodeGuardianSOF/DiscordBot.git
    cd DiscordBot
    ```
 
-4. **Install dependencies:**
+3. **Run the setup.sh script**
+
+   Open Terminal and run:
 
    ```bash
-   pip3 install -r requirements.txt
+   sudo bash setup.sh
    ```
 
-5. **Edit the configuration file:**
+4. **Edit the configuration file:**
 
-   Open `config.yaml` in a text editor and fill in your Discord bot token and other settings.
+   Open `config.yaml` in a text editor and fill in your Discord bot token and other settings, if you havent configured it yet.
 
-6. **Run the bot:**
+5. **Run the bot:**
 
    ```bash
-   python3 main.py
+   ./run.sh
    ```
 
 ## 🤝 Contributing
