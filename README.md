@@ -46,29 +46,6 @@ A sophisticated Discord bot with multiple commands and logging capabilities, wri
 
 ### Steps
 
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/CodeGuardianSOF/DiscordBot.git
-   cd DiscordBot
-   ```
-
-2. **Install dependencies:**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure the bot:**
-
-   Edit the `config.yaml` file to include your bot token and other configurations.
-
-4. **Run the bot:**
-
-   ```bash
-   python main.py
-   ```
-
 **For setup tutorials for Linux, Windows, and macOS, see below.**
 
 ## 📄 Logging
