@@ -98,7 +98,7 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
    nano config/config.yaml
    ```
 
-4. **Run the run.sh script after the setup is done.** *If you didnt connfigure the config.yaml file with your token and id the Bot will not work.*
+4. **Run the run.sh script after the setup is done.** **If you didnt configure the config.yaml file with your token and id the Bot will not work.**
 
    ```bash
    ./run.sh
