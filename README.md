@@ -79,43 +79,31 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
 
 ## 🐧 Setup Tutorial on Linux
 
-1. **Update your system:**
-
-   ```bash
-   sudo apt update
-   sudo apt upgrade
-   ```
-
-2. **Install Python 3.7+:**
-
-   ```bash
-   sudo apt install python3
-   sudo apt install python3-pip
-   ```
-
-3. **Clone the GitHub repository:**
+1. **Clone the repository:**
 
    ```bash
    git clone https://github.com/CodeGuardianSOF/DiscordBot.git
    cd DiscordBot
    ```
 
-4. **Install dependencies:**
+2. **Run the setup.sh file:**
 
    ```bash
-   pip3 install -r requirements.txt
+   sudo bash setup.sh
    ```
 
-5. **Edit the configuration file:**
+3. **Configure the config.yaml file if you didnt do it.**
+   
+   ```bash
+   nano config/config.yaml
+   ```
 
-   Open `config.yaml` and fill in your Discord bot token and other settings.
-
-6. **Run the bot:**
+4. **Run the run.sh script after the setup is done.** **If you didnt configure the config.yaml file with your token and id the Bot will not work.**
 
    ```bash
-   python3 main.py
+   ./run.sh
    ```
-
+   
 ## 🪟 Setup Tutorial on Windows
 
 1. **Update your system:**
