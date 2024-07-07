@@ -144,8 +144,8 @@ async def sync(interaction: discord.Interaction):
         logger.debug("Extensions loaded")
         synced = await bot.tree.sync()
         synced_command_names = [cmd.name for cmd in synced]
-        await interaction.followup.send(f"Successfully synced {len(synced)} commands globally: {', '.join(synced_command_names)}", ephemeral=True)
-        logger.info(f"Successfully synced {len(synced)} commands globally: {', '.join(synced_command_names)}")
+        await interaction.followup.send(f"Successfully synced {len(synced)} cogs globally: {', '.join(synced_command_names)}", ephemeral=True)
+        logger.info(f"Successfully synced {len(synced)} cogs globally: {', '.join(synced_command_names)}")
     except discord.errors.HTTPException as e:
         logger.exception("Failed to sync commands due to HTTP exception")
         await interaction.followup.send(f"Failed to sync commands due to HTTP exception: {e}", ephemeral=True)
@@ -194,3 +194,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
