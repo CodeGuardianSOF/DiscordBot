@@ -53,7 +53,7 @@ create_run_script () {
 source venv/bin/activate
 
 # Run the bot
-python your_bot_script.py
+python main.py
 EOL
     chmod +x run.sh || { echo "Failed to make run.sh executable"; exit 1; }
 }
