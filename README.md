@@ -1,6 +1,6 @@
 # 🤖 Discord Bot
 
-A sophisticated Discord bot with multiple commands and logging capabilities, configurable via a `config.yaml` file.
+A sophisticated Discord bot with multiple commands and logging capabilities, writen in python, configurable via a `config.yaml` file.
 
 ## ✨ Features
 
@@ -198,4 +198,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## 🟢 Changelog
 
-All changes will be logged in the Changelog page [Changelog](.github/CHANGELOG.md)
+All changes will be logged in the Changelog page [Changelog](CHANGELOG.md)
