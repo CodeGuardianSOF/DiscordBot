@@ -14,7 +14,8 @@ A sophisticated Discord bot with multiple commands and logging capabilities, wri
   - `/reload <cog_name>` - Reload a cog; names must be like `cogs.fun`, `cogs.moderation`, etc.
   - `/sync` - This command is essential for the bot's commands to appear. Whenever you run the bot, you must first use the sync command and reload your browser or reopen your app.
   - `/broadcast <message> <channel>` - Broadcasts a message to all servers the bot has joined on a specific channel. **NEW**
-  - `/list_extensions` - Lists all loaded cogs/extensions. **NEW**
+  - `/list_extensions` - Lists all loaded/unloaded cogs/extensions. **NEW**
+  - `/scan_issues` - Scans the bots script and the system for issues that might cause the bot not to run as expected. **NEW**
 - 🛡️ **Moderation Commands:**
   - `/ban <user> <reason>` - Ban a user.
   - `/kick <user> <reason>` - Kick a user.
