@@ -185,8 +185,8 @@ class OwnerCog(commands.GroupCog, name="ownertools"):
         except ValueError:
             await self.send_ephemeral_embed(interaction, "Invalid ID", "The provided channel ID is not a valid integer.", discord.Color.red())
 
-    @app_commands.command(name="list_issues", description="List issues with the bot's script or dependencies")
-    async def list_issues(self, interaction: discord.Interaction):
+    @app_commands.command(name="scan_issues", description="Scan issues with the bot's script or dependencies")
+    async def scan_issues(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         issues = []
         status_messages = []
