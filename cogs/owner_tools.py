@@ -32,8 +32,9 @@ class OwnerCog(commands.GroupCog, name="ownertools"):
             return is_owner
         return app_commands.check(predicate)
 
-    async def send_ephemeral_embed(self, interaction, title, description, color=discord.Color.blue()):
-        embed = discord.Embed(title=title, description=description, color=color)
+    async def send_ephemeral_embed(self, interaction, title=None, description=None, embed=None, color=None):
+        if embed is None:
+            embed = discord.Embed(title=title, description=description, color=color or discord.Color.blue())
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @owner_only()
@@ -42,6 +43,48 @@ class OwnerCog(commands.GroupCog, name="ownertools"):
         await self.send_ephemeral_embed(interaction, "Shutting Down", "The bot is shutting down...")
         logging.info("Bot is shutting down by the owner's command")
         await self.bot.close()
+
+    @owner_only()
+    @app_commands.command(name="list_extensions", description="List all extensions and their load status")
+    async def list_extensions(self, interaction: discord.Interaction, attempt_load: bool = False):
+        await interaction.response.defer(ephemeral=True)
+
+        cogs_directory = './cogs'
+        cog_files = [f for f in os.listdir(cogs_directory) if f.endswith('.py')]
+        cogs = [f'cogs.{os.path.splitext(file)[0]}' for file in cog_files]
+        
+        loaded_extensions = self.bot.extensions.keys()
+        embed = None
+        
+        load_errors = []
+        
+        if not cogs:
+            embed = discord.Embed(title="Extensions Status", description="No cog files found in the directory.", color=discord.Color.blue())
+        else:
+            embed = discord.Embed(title="Extensions Status", color=discord.Color.blue())
+            for cog in cogs:
+                status = "Loaded" if cog in loaded_extensions else "Not Loaded"
+                cog_path = os.path.join(cogs_directory, cog.split('.')[1] + '.py')
+                last_modified = datetime.fromtimestamp(os.path.getmtime(cog_path)).strftime('%Y-%m-%d %H:%M:%S')
+                file_size = os.path.getsize(cog_path) / 1024  # File size in KB
+                value = f"**Status:** {status}\n**Last Modified:** {last_modified}\n**File Size:** {file_size:.2f} KB"
+
+                if attempt_load and status == "Not Loaded":
+                    try:
+                        await self.bot.load_extension(cog)
+                        value += "\n**Load Attempt:** Success"
+                        status = "Loaded"
+                    except Exception as e:
+                        load_errors.append(f"Failed to load {cog}: {str(e)}")
+                        value += f"\n**Load Attempt:** Failed - {str(e)}"
+                
+                embed.add_field(name=cog, value=value, inline=False)
+        
+        if load_errors:
+            embed.add_field(name="Load Errors", value="\n".join(load_errors), inline=False)
+        
+        await self.send_ephemeral_embed(interaction, "Extensions List", embed=embed)
+        logging.info("Listed all extensions and their status")
 
     @owner_only()
     @app_commands.command(name="load", description="Load an extension")
@@ -177,14 +220,22 @@ class OwnerCog(commands.GroupCog, name="ownertools"):
             channel = self.bot.get_channel(channel_id)
             if channel and isinstance(channel, discord.TextChannel):
                 deleted = await channel.purge(limit=limit)
-                await self.send_ephemeral_embed(interaction, "Messages Pruned", f"Deleted {len(deleted)} messages from {channel.mention}", discord.Color.green())
+                embed = discord.Embed(
+                    title="Messages Pruned",
+                    description=f"Deleted {len(deleted)} messages from {channel.mention}",
+                    color=discord.Color.green()
+                )
+                await self.send_ephemeral_embed(interaction, embed=embed)
                 logging.info(f"Pruned {len(deleted)} messages from {channel.name}")
             else:
-                await self.send_ephemeral_embed(interaction, "Channel Not Found", f"Text channel with ID `{channel_id}` not found", discord.Color.red())
+                await self.send_ephemeral_embed(interaction, title="Channel Not Found", description=f"Text channel with ID `{channel_id}` not found", color=discord.Color.red())
                 logging.warning(f"Text channel with ID {channel_id} not found")
         except ValueError:
-            await self.send_ephemeral_embed(interaction, "Invalid ID", "The provided channel ID is not a valid integer.", discord.Color.red())
-
+            await self.send_ephemeral_embed(interaction, title="Invalid ID", description="The provided channel ID is not a valid integer.", color=discord.Color.red())
+        except Exception as e:
+            logging.error(f"Failed to prune messages: {e}\n{traceback.format_exc()}")
+            await self.send_ephemeral_embed(interaction, title="Prune Failed", description=f"Failed to prune messages: {e}", color=discord.Color.red())
+        
     @app_commands.command(name="scan_issues", description="Scan issues with the bot's script or dependencies")
     async def scan_issues(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
