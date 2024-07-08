@@ -221,9 +221,17 @@ jobs:
           echo "::error file=markdownlint-report.txt::MarkdownLint found issues"
         fi
 
-    - name: Check for large log files
+    - name: Check for large log files (Linux/macOS)
+      if: runner.os != 'Windows'
       run: |
         find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
+
+    # Check for large log files on Windows
+    - name: Check for large log files (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
+      shell: pwsh
 
   coverage:
     name: Code Coverage Analysis
