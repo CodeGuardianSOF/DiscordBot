@@ -29,7 +29,7 @@ jobs:
         languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
         echo "Detected languages: $languages"
         echo "::set-output name=languages::$languages"
-
+        
   lint:
     needs: detect-languages
     runs-on: ${{ matrix.os }}
@@ -47,7 +47,7 @@ jobs:
 
         if [[ "$languages" == *"JavaScript"* ]]; then
           echo "Setting up Node.js environment"
-          uses: actions/setup-node@v3
+          actions/setup-node@v3
           with:
             node-version: '16'
           run: |
@@ -59,12 +59,14 @@ jobs:
               if [ $eslint_failed -ne 0 ]; then
                 echo "::error file=eslint-report.txt::ESLint found issues"
               fi
+            else
+              echo "No package.json found, skipping npm install and eslint."
             fi
         fi
 
         if [[ "$languages" == *"Python"* ]]; then
           echo "Setting up Python environment"
-          uses: actions/setup-python@v4
+          actions/setup-python@v4
           with:
             python-version: '3.9'
           run: |
@@ -106,7 +108,7 @@ jobs:
 
         if [[ "$languages" == *"Go"* ]]; then
           echo "Setting up Go environment"
-          uses: actions/setup-go@v4
+          actions/setup-go@v4
           with:
             go-version: '1.16'
           run: |
@@ -120,7 +122,7 @@ jobs:
 
         if [[ "$languages" == *"Java"* ]]; then
           echo "Setting up Java environment"
-          uses: actions/setup-java@v3
+          actions/setup-java@v3
           with:
             java-version: '11'
           run: |
@@ -134,7 +136,7 @@ jobs:
 
         if [[ "$languages" == *"PHP"* ]]; then
           echo "Setting up PHP environment"
-          uses: shivammathur/setup-php@v2
+          shivammathur/setup-php@v2
           with:
             php-version: '7.4'
           run: |
@@ -148,7 +150,7 @@ jobs:
 
         if [[ "$languages" == *"Ruby"* ]]; then
           echo "Setting up Ruby environment"
-          uses: ruby/setup-ruby@v1
+          actions/setup-ruby@v1
           with:
             ruby-version: '2.7'
           run: |
@@ -162,7 +164,7 @@ jobs:
 
         if [[ "$languages" == *"C#"* ]]; then
           echo "Setting up .NET environment"
-          uses: actions/setup-dotnet@v3
+          actions/setup-dotnet@v3
           with:
             dotnet-version: '5.0.x'
           run: |
@@ -176,7 +178,7 @@ jobs:
 
         if [[ "$languages" == *"Rust"* ]]; then
           echo "Setting up Rust environment"
-          uses: actions-rs/toolchain@v1
+          actions-rs/toolchain@v1
           with:
             toolchain: stable
           run: |
@@ -187,6 +189,7 @@ jobs:
               echo "::error file=clippy-report.txt::Clippy found issues"
             fi
         fi
+      shell: bash
 
   coverage:
     name: Code Coverage Analysis
@@ -232,6 +235,7 @@ jobs:
         scan-type: 'fs'
         ignore-unfixed: true
 
+jobs:
   dependency-update:
     name: Dependency Updates
     runs-on: ubuntu-latest
@@ -248,18 +252,24 @@ jobs:
       run: |
         if [ -f package.json ]; then
           npm install
+        else
+          echo "No package.json found, skipping npm install."
         fi
 
     - name: Check for outdated dependencies
       run: |
         if [ -f package.json ]; then
           npm outdated
+        else
+          echo "No package.json found, skipping npm outdated."
         fi
 
     - name: Update dependencies
       run: |
         if [ -f package.json ]; then
           npm update
+        else
+          echo "No package.json found, skipping npm update."
         fi
 
     - name: Commit and push updates
@@ -267,15 +277,20 @@ jobs:
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git checkout -b update-dependencies
-        npm install
-        npm update
-        git commit -am "Update dependencies"
-        git push origin update-dependencies
+        if [ -f package.json ]; then
+          npm install
+          npm update
+          git commit -am "Update dependencies"
+          git push origin update-dependencies
+        else
+          echo "No package.json found, skipping dependency update commit."
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create pull request
       uses: peter-evans/create-pull-request@v4
+      if: ${{ steps.commit-push.outputs.commit != '' }}
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "Update dependencies"
