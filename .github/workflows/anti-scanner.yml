@@ -205,6 +205,26 @@ jobs:
           echo "::error file=clippy-report.txt::Clippy found issues"
         fi
 
+    - name: Install MarkdownLint
+      if: contains(needs.detect-languages.outputs.languages, 'Markdown')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y npm
+        npm install -g markdownlint-cli
+
+    - name: Run MarkdownLint
+      if: contains(needs.detect-languages.outputs.languages, 'Markdown')
+      run: |
+        markdownlint "**/*.md" | tee markdownlint-report.txt
+        markdownlint_failed=$?
+        if [ $markdownlint_failed -ne 0 ]; then
+          echo "::error file=markdownlint-report.txt::MarkdownLint found issues"
+        fi
+
+    - name: Check for large log files
+      run: |
+        find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
+
   coverage:
     name: Code Coverage Analysis
     runs-on: ubuntu-latest
@@ -222,32 +242,41 @@ jobs:
       run: |
         if [ -f package.json ]; then
           npm install
+          npm run coverage
+          coverage_failed=$?
+          if [ $coverage_failed -ne 0 ]; then
+            echo "::error::Code coverage analysis found issues"
+          fi
+        else
+          echo "No package.json found, skipping npm install and coverage."
         fi
 
-    - name: Run tests and collect coverage
-      run: |
-        if [ -f package.json ]; then
-          npm run test -- --coverage
-        fi
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-
-  security:
-    name: Security Scanning
+  create-pull-request:
+    name: Create or Update Pull Request
     runs-on: ubuntu-latest
+    needs: [lint, coverage]
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Run Trivy to scan for vulnerabilities
-      uses: aquasecurity/trivy-action@master
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
       with:
-        scan-type: 'fs'
-        ignore-unfixed: true
+        node-version: '16'
+
+    - name: Configure git
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        commit-message: "Auto-generated update by GitHub Action"
+        branch: update-dependencies
+        title: "Dependency Update"
+        body: "This PR updates dependencies to their latest versions."
 
   dependency-update:
     name: Dependency Updates
@@ -301,8 +330,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Create pull request
+    - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
+      if: ${{ steps.commit-push.outputs.commit != '' }}
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "Update dependencies"
