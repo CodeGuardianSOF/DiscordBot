@@ -103,7 +103,7 @@ class MyBot(commands.Bot):
             ]
             await self.change_presence(activity=discord.Game(random.choice(statuses)))
             logger.info("Status updated")
-d
+
     async def load_extensions(self):
         logger.debug("Loading extensions")
         cog_directory = Path('cogs')
