@@ -9,105 +9,121 @@ on:
       - main
 
 jobs:
-  lint:
-    name: Lint code
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        language: [javascript, python, shell, yaml, go, java, php, ruby, csharp, rust]
-
+  detect-languages:
+    runs-on: ubuntu-latest
+    outputs:
+      languages: ${{ steps.detect.outputs.languages }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Setup environments
-    - name: Set up environment
+    - name: Install Linguist
       run: |
-        if [ "${{ matrix.language }}" == "javascript" ]; then
-          echo "Setting up Node.js"
-          actions/setup-node@v3 node-version=16;
-        elif [ "${{ matrix.language }}" == "python" ]; then
-          echo "Setting up Python"
-          actions/setup-python@v4 python-version=3.9;
-        elif [ "${{ matrix.language }}" == "go" ]; then
-          echo "Setting up Go"
-          actions/setup-go@v4 go-version=1.16;
-        elif [ "${{ matrix.language }}" == "java" ]; then
-          echo "Setting up Java"
-          actions/setup-java@v3 java-version=11;
-        elif [ "${{ matrix.language }}" == "php" ]; then
-          echo "Setting up PHP"
-          shivammathur/setup-php@v2 php-version=7.4;
-        elif [ "${{ matrix.language }}" == "ruby" ]; then
-          echo "Setting up Ruby"
-          actions/setup-ruby@v1 ruby-version=2.7;
-        elif [ "${{ matrix.language }}" == "csharp" ]; then
-          echo "Setting up .NET"
-          actions/setup-dotnet@v3 dotnet-version=5.0.x;
-        elif [ "${{ matrix.language }}" == "rust" ]; then
-          echo "Setting up Rust"
-          actions-rs/toolchain@v1 toolchain=stable;
+        sudo apt-get update
+        sudo apt-get install -y ruby-full
+        gem install github-linguist
+
+    - name: Detect languages
+      id: detect
+      run: |
+        languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
+        echo "Detected languages: $languages"
+        echo "::set-output name=languages::$languages"
+
+  lint:
+    needs: detect-languages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up environment and run linters
+      run: |
+        languages="${{ needs.detect-languages.outputs.languages }}"
+        echo "Detected languages: $languages"
+
+        # JavaScript setup and linter
+        if [[ "$languages" == *"JavaScript"* ]]; then
+          echo "Setting up Node.js environment"
+          actions/setup-node@v3 node-version=16
+          npm install
+          npm install eslint
+          npx eslint .
         fi
 
-    # Install dependencies
-    - name: Install dependencies
-      run: |
-        if [ "${{ matrix.language }}" == "javascript" ]; then
-          npm install;
-        elif [ "${{ matrix.language }}" == "python" ]; then
-          python -m pip install --upgrade pip;
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi;
+        # Python setup and linter
+        if [[ "$languages" == *"Python"* ]]; then
+          echo "Setting up Python environment"
+          actions/setup-python@v4 python-version=3.9
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install bandit
+          bandit -r .
         fi
 
-    # Install linters
-    - name: Install linter
-      run: |
-        if [ "${{ matrix.language }}" == "javascript" ]; then
-          npm install eslint;
-        elif [ "${{ matrix.language }}" == "python" ]; then
-          pip install bandit;
-        elif [ "${{ matrix.language }}" == "shell" ]; then
-          sudo apt-get install -y shellcheck;
-        elif [ "${{ matrix.language }}" == "yaml" ]; then
-          sudo apt-get install -y yamllint;
-        elif [ "${{ matrix.language }}" == "go" ]; then
-          go install golang.org/x/lint/golint@latest;
-        elif [ "${{ matrix.language }}" == "java" ]; then
-          curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar;
-        elif [ "${{ matrix.language }}" == "php" ]; then
-          composer global require "squizlabs/php_codesniffer=*";
-        elif [ "${{ matrix.language }}" == "ruby" ]; then
-          gem install rubocop;
-        elif [ "${{ matrix.language }}" == "csharp" ]; then
-          dotnet tool install -g dotnet-format;
-        elif [ "${{ matrix.language }}" == "rust" ]; then
-          rustup component add clippy;
+        # Shell setup and linter
+        if [[ "$languages" == *"Shell"* ]]; then
+          echo "Installing ShellCheck"
+          sudo apt-get install -y shellcheck
+          shellcheck **/*.sh
         fi
 
-    # Run linters
-    - name: Run linter
-      run: |
-        if [ "${{ matrix.language }}" == "javascript" ]; then
-          npx eslint .;
-        elif [ "${{ matrix.language }}" == "python" ]; then
-          bandit -r .;
-        elif [ "${{ matrix.language }}" == "shell" ]; then
-          shellcheck **/*.sh;
-        elif [ "${{ matrix.language }}" == "yaml" ]; then
-          yamllint .;
-        elif [ "${{ matrix.language }}" == "go" ]; then
-          golint ./...;
-        elif [ "${{ matrix.language }}" == "java" ]; then
-          java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src;
-        elif [ "${{ matrix.language }}" == "php" ]; then
-          ~/.composer/vendor/bin/phpcs --standard=PSR2 src/;
-        elif [ "${{ matrix.language }}" == "ruby" ]; then
-          rubocop;
-        elif [ "${{ matrix.language }}" == "csharp" ]; then
-          dotnet format;
-        elif [ "${{ matrix.language }}" == "rust" ]; then
-          cargo clippy --all-targets --all-features -- -D warnings;
+        # YAML setup and linter
+        if [[ "$languages" == *"YAML"* ]]; then
+          echo "Installing YAMLLint"
+          sudo apt-get install -y yamllint
+          yamllint .
+        fi
+
+        # Go setup and linter
+        if [[ "$languages" == *"Go"* ]]; then
+          echo "Setting up Go environment"
+          actions/setup-go@v4 go-version=1.16
+          go install golang.org/x/lint/golint@latest
+          golint ./...
+        fi
+
+        # Java setup and linter
+        if [[ "$languages" == *"Java"* ]]; then
+          echo "Setting up Java environment"
+          actions/setup-java@v3 java-version=11
+          curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
+          java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src
+        fi
+
+        # PHP setup and linter
+        if [[ "$languages" == *"PHP"* ]]; then
+          echo "Setting up PHP environment"
+          shivammathur/setup-php@v2 php-version=7.4
+          composer global require "squizlabs/php_codesniffer=*"
+          ~/.composer/vendor/bin/phpcs --standard=PSR2 src/
+        fi
+
+        # Ruby setup and linter
+        if [[ "$languages" == *"Ruby"* ]]; then
+          echo "Setting up Ruby environment"
+          actions/setup-ruby@v1 ruby-version=2.7
+          gem install rubocop
+          rubocop
+        fi
+
+        # C# setup and linter
+        if [[ "$languages" == *"C#"* ]]; then
+          echo "Setting up .NET environment"
+          actions/setup-dotnet@v3 dotnet-version=5.0.x
+          dotnet tool install -g dotnet-format
+          dotnet format
+        fi
+
+        # Rust setup and linter
+        if [[ "$languages" == *"Rust"* ]]; then
+          echo "Setting up Rust environment"
+          actions-rs/toolchain@v1 toolchain=stable
+          rustup component add clippy
+          cargo clippy --all-targets --all-features -- -D warnings
         fi
 
   coverage:
