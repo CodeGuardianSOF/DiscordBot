@@ -45,111 +45,147 @@ jobs:
         languages="${{ needs.detect-languages.outputs.languages }}"
         echo "Detected languages: $languages"
 
-        # JavaScript setup and linter
         if [[ "$languages" == *"JavaScript"* ]]; then
           echo "Setting up Node.js environment"
-          actions/setup-node@v3
-          run: |
+          uses: actions/setup-node@v3
+          with:
             node-version: '16'
           run: |
             if [ -f package.json ]; then
               npm install
               npm install eslint
-              npx eslint .
+              npx eslint . | tee eslint-report.txt
+              eslint_failed=$?
+              if [ $eslint_failed -ne 0 ]; then
+                echo "::error file=eslint-report.txt::ESLint found issues"
+              fi
             fi
         fi
 
-        # Python setup and linter
         if [[ "$languages" == *"Python"* ]]; then
           echo "Setting up Python environment"
-          actions/setup-python@v4
-          run: |
+          uses: actions/setup-python@v4
+          with:
             python-version: '3.9'
           run: |
             python -m pip install --upgrade pip
             if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
             pip install bandit
-            bandit -r .
+            bandit -r . | tee bandit-report.txt
+            bandit_failed=$?
+            if [ $bandit_failed -ne 0 ]; then
+              echo "::error file=bandit-report.txt::Bandit found issues"
+            fi
         fi
 
-        # Shell setup and linter
         if [[ "$languages" == *"Shell"* ]]; then
           echo "Installing ShellCheck"
-          sudo apt-get install -y shellcheck
-          shellcheck **/*.sh
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y shellcheck
+          run: |
+            shellcheck **/*.sh | tee shellcheck-report.txt || true
+            shellcheck_failed=$?
+            if [ $shellcheck_failed -ne 0 ]; then
+              echo "::error file=shellcheck-report.txt::ShellCheck found issues"
+            fi
         fi
 
-        # YAML setup and linter
         if [[ "$languages" == *"YAML"* ]]; then
           echo "Installing YAMLLint"
-          sudo apt-get install -y yamllint
-          yamllint .
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y yamllint
+          run: |
+            yamllint . | tee yamllint-report.txt
+            yamllint_failed=$?
+            if [ $yamllint_failed -ne 0 ]; then
+              echo "::error file=yamllint-report.txt::YAMLLint found issues"
+            fi
         fi
 
-        # Go setup and linter
         if [[ "$languages" == *"Go"* ]]; then
           echo "Setting up Go environment"
-          actions/setup-go@v4
-          run: |
+          uses: actions/setup-go@v4
+          with:
             go-version: '1.16'
           run: |
             go install golang.org/x/lint/golint@latest
-            golint ./...
+            golint ./... | tee golint-report.txt
+            golint_failed=$?
+            if [ $golint_failed -ne 0 ]; then
+              echo "::error file=golint-report.txt::GoLint found issues"
+            fi
         fi
 
-        # Java setup and linter
         if [[ "$languages" == *"Java"* ]]; then
           echo "Setting up Java environment"
-          actions/setup-java@v3
-          run: |
+          uses: actions/setup-java@v3
+          with:
             java-version: '11'
           run: |
             curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
-            java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src
+            java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | tee checkstyle-report.txt
+            checkstyle_failed=$?
+            if [ $checkstyle_failed -ne 0 ]; then
+              echo "::error file=checkstyle-report.txt::Checkstyle found issues"
+            fi
         fi
 
-        # PHP setup and linter
         if [[ "$languages" == *"PHP"* ]]; then
           echo "Setting up PHP environment"
-          shivammathur/setup-php@v2
-          run: |
+          uses: shivammathur/setup-php@v2
+          with:
             php-version: '7.4'
           run: |
             composer global require "squizlabs/php_codesniffer=*"
-            ~/.composer/vendor/bin/phpcs --standard=PSR2 src/
+            ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | tee phpcs-report.txt
+            phpcs_failed=$?
+            if [ $phpcs_failed -ne 0 ]; then
+              echo "::error file=phpcs-report.txt::PHPCS found issues"
+            fi
         fi
 
-        # Ruby setup and linter
         if [[ "$languages" == *"Ruby"* ]]; then
           echo "Setting up Ruby environment"
-          actions/setup-ruby@v1
-          run: |
+          uses: ruby/setup-ruby@v1
+          with:
             ruby-version: '2.7'
           run: |
             gem install rubocop
-            rubocop
+            rubocop | tee rubocop-report.txt
+            rubocop_failed=$?
+            if [ $rubocop_failed -ne 0 ]; then
+              echo "::error file=rubocop-report.txt::RuboCop found issues"
+            fi
         fi
 
-        # C# setup and linter
         if [[ "$languages" == *"C#"* ]]; then
           echo "Setting up .NET environment"
-          actions/setup-dotnet@v3
-          run: |
+          uses: actions/setup-dotnet@v3
+          with:
             dotnet-version: '5.0.x'
           run: |
             dotnet tool install -g dotnet-format
-            dotnet format
+            dotnet format | tee dotnet-format-report.txt
+            dotnet_format_failed=$?
+            if [ $dotnet_format_failed -ne 0 ]; then
+              echo "::error file=dotnet-format-report.txt::Dotnet Format found issues"
+            fi
         fi
 
-        # Rust setup and linter
         if [[ "$languages" == *"Rust"* ]]; then
           echo "Setting up Rust environment"
-          actions-rs/toolchain@v1
-          run: |
+          uses: actions-rs/toolchain@v1
+          with:
             toolchain: stable
           run: |
             rustup component add clippy
-            cargo clippy --all-targets --all-features -- -D warnings
+            cargo clippy --all-targets --all-features -- -D warnings | tee clippy-report.txt
+            clippy_failed=$?
+            if [ $clippy_failed -ne 0 ]; then
+              echo "::error file=clippy-report.txt::Clippy found issues"
+            fi
         fi
 
   coverage:
@@ -191,7 +227,7 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Run Trivy to scan for vulnerabilities
-      uses: aquasecurity/trivy-action@v0.7.0
+      uses: aquasecurity/trivy-action@master
       with:
         scan-type: 'fs'
         ignore-unfixed: true
