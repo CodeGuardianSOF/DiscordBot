@@ -29,7 +29,7 @@ jobs:
         languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
         echo "Detected languages: $languages"
         echo "::set-output name=languages::$languages"
-        
+
   lint:
     needs: detect-languages
     runs-on: ${{ matrix.os }}
@@ -40,156 +40,170 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up environment and run linters
+    - name: Set up Node.js environment
+      if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+
+    - name: Run ESLint
+      if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
       run: |
-        languages="${{ needs.detect-languages.outputs.languages }}"
-        echo "Detected languages: $languages"
-
-        if [[ "$languages" == *"JavaScript"* ]]; then
-          echo "Setting up Node.js environment"
-          actions/setup-node@v3
-          with:
-            node-version: '16'
-          run: |
-            if [ -f package.json ]; then
-              npm install
-              npm install eslint
-              npx eslint . | tee eslint-report.txt
-              eslint_failed=$?
-              if [ $eslint_failed -ne 0 ]; then
-                echo "::error file=eslint-report.txt::ESLint found issues"
-              fi
-            else
-              echo "No package.json found, skipping npm install and eslint."
-            fi
+        if [ -f package.json ]; then
+          npm install
+          npm install eslint
+          npx eslint . | tee eslint-report.txt
+          eslint_failed=$?
+          if [ $eslint_failed -ne 0 ]; then
+            echo "::error file=eslint-report.txt::ESLint found issues"
+          fi
+        else
+          echo "No package.json found, skipping npm install and eslint."
         fi
 
-        if [[ "$languages" == *"Python"* ]]; then
-          echo "Setting up Python environment"
-          actions/setup-python@v4
-          with:
-            python-version: '3.9'
-          run: |
-            python -m pip install --upgrade pip
-            if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-            pip install bandit
-            bandit -r . | tee bandit-report.txt
-            bandit_failed=$?
-            if [ $bandit_failed -ne 0 ]; then
-              echo "::error file=bandit-report.txt::Bandit found issues"
-            fi
+    - name: Set up Python environment
+      if: contains(needs.detect-languages.outputs.languages, 'Python')
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Run Bandit
+      if: contains(needs.detect-languages.outputs.languages, 'Python')
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install bandit
+        bandit -r . | tee bandit-report.txt
+        bandit_failed=$?
+        if [ $bandit_failed -ne 0 ]; then
+          echo "::error file=bandit-report.txt::Bandit found issues"
         fi
 
-        if [[ "$languages" == *"Shell"* ]]; then
-          echo "Installing ShellCheck"
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y shellcheck
-          run: |
-            shellcheck **/*.sh | tee shellcheck-report.txt || true
-            shellcheck_failed=$?
-            if [ $shellcheck_failed -ne 0 ]; then
-              echo "::error file=shellcheck-report.txt::ShellCheck found issues"
-            fi
+    - name: Install ShellCheck
+      if: contains(needs.detect-languages.outputs.languages, 'Shell')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+
+    - name: Run ShellCheck
+      if: contains(needs.detect-languages.outputs.languages, 'Shell')
+      run: |
+        shellcheck **/*.sh | tee shellcheck-report.txt || true
+        shellcheck_failed=$?
+        if [ $shellcheck_failed -ne 0 ]; then
+          echo "::error file=shellcheck-report.txt::ShellCheck found issues"
         fi
 
-        if [[ "$languages" == *"YAML"* ]]; then
-          echo "Installing YAMLLint"
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y yamllint
-          run: |
-            yamllint . | tee yamllint-report.txt
-            yamllint_failed=$?
-            if [ $yamllint_failed -ne 0 ]; then
-              echo "::error file=yamllint-report.txt::YAMLLint found issues"
-            fi
+    - name: Install YAMLLint
+      if: contains(needs.detect-languages.outputs.languages, 'YAML')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y yamllint
+
+    - name: Run YAMLLint
+      if: contains(needs.detect-languages.outputs.languages, 'YAML')
+      run: |
+        yamllint . | tee yamllint-report.txt
+        yamllint_failed=$?
+        if [ $yamllint_failed -ne 0 ]; then
+          echo "::error file=yamllint-report.txt::YAMLLint found issues"
         fi
 
-        if [[ "$languages" == *"Go"* ]]; then
-          echo "Setting up Go environment"
-          actions/setup-go@v4
-          with:
-            go-version: '1.16'
-          run: |
-            go install golang.org/x/lint/golint@latest
-            golint ./... | tee golint-report.txt
-            golint_failed=$?
-            if [ $golint_failed -ne 0 ]; then
-              echo "::error file=golint-report.txt::GoLint found issues"
-            fi
+    - name: Set up Go environment
+      if: contains(needs.detect-languages.outputs.languages, 'Go')
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.16'
+
+    - name: Run GoLint
+      if: contains(needs.detect-languages.outputs.languages, 'Go')
+      run: |
+        go install golang.org/x/lint/golint@latest
+        golint ./... | tee golint-report.txt
+        golint_failed=$?
+        if [ $golint_failed -ne 0 ]; then
+          echo "::error file=golint-report.txt::GoLint found issues"
         fi
 
-        if [[ "$languages" == *"Java"* ]]; then
-          echo "Setting up Java environment"
-          actions/setup-java@v3
-          with:
-            java-version: '11'
-          run: |
-            curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
-            java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | tee checkstyle-report.txt
-            checkstyle_failed=$?
-            if [ $checkstyle_failed -ne 0 ]; then
-              echo "::error file=checkstyle-report.txt::Checkstyle found issues"
-            fi
+    - name: Set up Java environment
+      if: contains(needs.detect-languages.outputs.languages, 'Java')
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+
+    - name: Run Checkstyle
+      if: contains(needs.detect-languages.outputs.languages, 'Java')
+      run: |
+        curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
+        java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | tee checkstyle-report.txt
+        checkstyle_failed=$?
+        if [ $checkstyle_failed -ne 0 ]; then
+          echo "::error file=checkstyle-report.txt::Checkstyle found issues"
         fi
 
-        if [[ "$languages" == *"PHP"* ]]; then
-          echo "Setting up PHP environment"
-          shivammathur/setup-php@v2
-          with:
-            php-version: '7.4'
-          run: |
-            composer global require "squizlabs/php_codesniffer=*"
-            ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | tee phpcs-report.txt
-            phpcs_failed=$?
-            if [ $phpcs_failed -ne 0 ]; then
-              echo "::error file=phpcs-report.txt::PHPCS found issues"
-            fi
+    - name: Set up PHP environment
+      if: contains(needs.detect-languages.outputs.languages, 'PHP')
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '7.4'
+
+    - name: Run PHPCS
+      if: contains(needs.detect-languages.outputs.languages, 'PHP')
+      run: |
+        composer global require "squizlabs/php_codesniffer=*"
+        ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | tee phpcs-report.txt
+        phpcs_failed=$?
+        if [ $phpcs_failed -ne 0 ]; then
+          echo "::error file=phpcs-report.txt::PHPCS found issues"
         fi
 
-        if [[ "$languages" == *"Ruby"* ]]; then
-          echo "Setting up Ruby environment"
-          actions/setup-ruby@v1
-          with:
-            ruby-version: '2.7'
-          run: |
-            gem install rubocop
-            rubocop | tee rubocop-report.txt
-            rubocop_failed=$?
-            if [ $rubocop_failed -ne 0 ]; then
-              echo "::error file=rubocop-report.txt::RuboCop found issues"
-            fi
+    - name: Set up Ruby environment
+      if: contains(needs.detect-languages.outputs.languages, 'Ruby')
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: '2.7'
+
+    - name: Run RuboCop
+      if: contains(needs.detect-languages.outputs.languages, 'Ruby')
+      run: |
+        gem install rubocop
+        rubocop | tee rubocop-report.txt
+        rubocop_failed=$?
+        if [ $rubocop_failed -ne 0 ]; then
+          echo "::error file=rubocop-report.txt::RuboCop found issues"
         fi
 
-        if [[ "$languages" == *"C#"* ]]; then
-          echo "Setting up .NET environment"
-          actions/setup-dotnet@v3
-          with:
-            dotnet-version: '5.0.x'
-          run: |
-            dotnet tool install -g dotnet-format
-            dotnet format | tee dotnet-format-report.txt
-            dotnet_format_failed=$?
-            if [ $dotnet_format_failed -ne 0 ]; then
-              echo "::error file=dotnet-format-report.txt::Dotnet Format found issues"
-            fi
+    - name: Set up .NET environment
+      if: contains(needs.detect-languages.outputs.languages, 'C#')
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '5.0.x'
+
+    - name: Run Dotnet Format
+      if: contains(needs.detect-languages.outputs.languages, 'C#')
+      run: |
+        dotnet tool install -g dotnet-format
+        dotnet format | tee dotnet-format-report.txt
+        dotnet_format_failed=$?
+        if [ $dotnet_format_failed -ne 0 ]; then
+          echo "::error file=dotnet-format-report.txt::Dotnet Format found issues"
         fi
 
-        if [[ "$languages" == *"Rust"* ]]; then
-          echo "Setting up Rust environment"
-          actions-rs/toolchain@v1
-          with:
-            toolchain: stable
-          run: |
-            rustup component add clippy
-            cargo clippy --all-targets --all-features -- -D warnings | tee clippy-report.txt
-            clippy_failed=$?
-            if [ $clippy_failed -ne 0 ]; then
-              echo "::error file=clippy-report.txt::Clippy found issues"
-            fi
+    - name: Set up Rust environment
+      if: contains(needs.detect-languages.outputs.languages, 'Rust')
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Run Clippy
+      if: contains(needs.detect-languages.outputs.languages, 'Rust')
+      run: |
+        rustup component add clippy
+        cargo clippy --all-targets --all-features -- -D warnings | tee clippy-report.txt
+        clippy_failed=$?
+        if [ $clippy_failed -ne 0 ]; then
+          echo "::error file=clippy-report.txt::Clippy found issues"
         fi
-      shell: bash
 
   coverage:
     name: Code Coverage Analysis
@@ -235,7 +249,6 @@ jobs:
         scan-type: 'fs'
         ignore-unfixed: true
 
-jobs:
   dependency-update:
     name: Dependency Updates
     runs-on: ubuntu-latest
@@ -290,7 +303,6 @@ jobs:
 
     - name: Create pull request
       uses: peter-evans/create-pull-request@v4
-      if: ${{ steps.commit-push.outputs.commit != '' }}
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "Update dependencies"
