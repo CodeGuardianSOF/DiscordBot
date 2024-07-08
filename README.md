@@ -62,7 +62,7 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/CodeGuardianSOF/DiscordBot.git
+   git clone https://github.com/CodeGuardianSOF/DiscordBot/tree/pre-release.git
    cd DiscordBot
    ```
 
@@ -99,7 +99,7 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
    Open Command Prompt and run:
 
    ```bash
-   git clone https://github.com/CodeGuardianSOF/DiscordBot.git
+   git clone https://github.com/CodeGuardianSOF/DiscordBot/tree/pre-release.git
    cd DiscordBot
    ```
 
@@ -128,7 +128,7 @@ The bot can be configured via the `config.yaml` file. This file includes necessa
 2. **Clone the GitHub repository:**
 
    ```bash
-   git clone https://github.com/CodeGuardianSOF/DiscordBot.git
+   git clone https://github.com/CodeGuardianSOF/DiscordBot/tree/pre-release.git
    cd DiscordBot
    ```
 
