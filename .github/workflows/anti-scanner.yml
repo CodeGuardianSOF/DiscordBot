@@ -29,9 +29,8 @@ jobs:
         languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
         echo "Detected languages: $languages"
         echo "languages=$languages" >> $GITHUB_ENV
-        echo "::set-output name=languages::$languages"
 
-  lint:
+   lint:
     needs: detect-languages
     runs-on: ${{ matrix.os }}
     strategy:
@@ -74,11 +73,20 @@ jobs:
           echo "Setting up Python environment and running Bandit..."
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install bandit
+          pip install bandit flake8
+          
+          echo "Running Bandit..."
           bandit -r . | tee bandit-report.txt
           bandit_failed=$?
           if [ $bandit_failed -ne 0 ]; then
             echo "::error file=bandit-report.txt::Bandit found issues"
+          fi
+
+          echo "Running Flake8..."
+          flake8 . | tee flake8-report.txt
+          flake8_failed=$?
+          if [ $flake8_failed -ne 0 ]; then
+            echo "::error file=flake8-report.txt::Flake8 found issues"
           fi
         fi
 
@@ -100,13 +108,21 @@ jobs:
         }
 
         if ($languages -match "Python") {
-          Write-Host "Setting up Python environment and running Bandit..."
+          Write-Host "Setting up Python environment and running Bandit and Flake8..."
           python -m pip install --upgrade pip
           if (Test-Path requirements.txt) { pip install -r requirements.txt }
-          pip install bandit
+          pip install bandit flake8
+
+          Write-Host "Running Bandit..."
           bandit -r . | Tee-Object -FilePath bandit-report.txt
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Bandit found issues"
+          }
+
+          Write-Host "Running Flake8..."
+          flake8 . | Tee-Object -FilePath flake8-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Flake8 found issues"
           }
         }
 
@@ -208,6 +224,13 @@ jobs:
       with:
         name: bandit-report
         path: bandit-report.txt
+
+    - name: Upload Flake8 report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Python')
+      uses: actions/upload-artifact@v3
+      with:
+        name: flake8-report
+        path: flake8-report.txt
 
     - name: Upload ShellCheck report
       if: failure() && contains(needs.detect-languages.outputs.languages, 'Shell')
