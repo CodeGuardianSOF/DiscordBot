@@ -30,13 +30,13 @@ jobs:
         echo "Detected languages: $languages"
         echo "languages=$languages" >> $GITHUB_ENV
 
-lint:
-  needs: detect-languages
-  runs-on: ${{ matrix.os }}
-  strategy:
-    matrix:
-      os: [ubuntu-latest, windows-latest, macos-latest]
-  steps:
+  lint:
+    needs: detect-languages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
@@ -53,14 +53,14 @@ lint:
       run: |
         Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
 
-    # Set up environments and run linters
+    # Set up environments and run linters (Linux/macOS)
     - name: Set up environments and run linters
+      if: runner.os != 'Windows'
       shell: bash
       run: |
         languages="${{ env.languages }}"
         echo "Detected languages: $languages"
 
-        # Bash-specific setup and linters
         if [[ "$languages" == *"JavaScript"* ]]; then
           echo "Setting up Node.js environment and running ESLint..."
           npm install
@@ -84,200 +84,200 @@ lint:
           fi
         fi
 
-      - name: Set up environments and run linters (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $languages = "${{ env.languages }}"
-          Write-Host "Detected languages: $languages"
+    # Set up environments and run linters (Windows)
+    - name: Set up environments and run linters
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $languages = "${{ env.languages }}"
+        Write-Host "Detected languages: $languages"
 
-          if ($languages -match "JavaScript") {
-            Write-Host "Setting up Node.js environment and running ESLint..."
-            npm install
-            npm install eslint
-            npx eslint . | Tee-Object -FilePath eslint-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "ESLint found issues"
-            }
+        if ($languages -match "JavaScript") {
+          Write-Host "Setting up Node.js environment and running ESLint..."
+          npm install
+          npm install eslint
+          npx eslint . | Tee-Object -FilePath eslint-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ESLint found issues"
           }
+        }
 
-          if ($languages -match "Python") {
-            Write-Host "Setting up Python environment and running Bandit..."
-            python -m pip install --upgrade pip
-            if (Test-Path requirements.txt) { pip install -r requirements.txt }
-            pip install bandit
-            bandit -r . | Tee-Object -FilePath bandit-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Bandit found issues"
-            }
+        if ($languages -match "Python") {
+          Write-Host "Setting up Python environment and running Bandit..."
+          python -m pip install --upgrade pip
+          if (Test-Path requirements.txt) { pip install -r requirements.txt }
+          pip install bandit
+          bandit -r . | Tee-Object -FilePath bandit-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Bandit found issues"
           }
+        }
 
-          if ($languages -match "Shell") {
-            Write-Host "Installing ShellCheck and running it..."
-            sudo apt-get update
-            sudo apt-get install -y shellcheck
-            shellcheck **/*.sh | Tee-Object -FilePath shellcheck-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "ShellCheck found issues"
-            }
+        if ($languages -match "Shell") {
+          Write-Host "Installing ShellCheck and running it..."
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck **/*.sh | Tee-Object -FilePath shellcheck-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ShellCheck found issues"
           }
+        }
 
-          if ($languages -match "YAML") {
-            Write-Host "Installing YAMLLint and running it..."
-            sudo apt-get update
-            sudo apt-get install -y yamllint
-            yamllint . | Tee-Object -FilePath yamllint-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "YAMLLint found issues"
-            }
+        if ($languages -match "YAML") {
+          Write-Host "Installing YAMLLint and running it..."
+          sudo apt-get update
+          sudo apt-get install -y yamllint
+          yamllint . | Tee-Object -FilePath yamllint-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "YAMLLint found issues"
           }
+        }
 
-          if ($languages -match "Go") {
-            Write-Host "Setting up Go environment and running GoLint..."
-            go install golang.org/x/lint/golint@latest
-            golint ./... | Tee-Object -FilePath golint-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "GoLint found issues"
-            }
+        if ($languages -match "Go") {
+          Write-Host "Setting up Go environment and running GoLint..."
+          go install golang.org/x/lint/golint@latest
+          golint ./... | Tee-Object -FilePath golint-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "GoLint found issues"
           }
+        }
 
-          if ($languages -match "Java") {
-            Write-Host "Setting up Java environment and running Checkstyle..."
-            curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
-            java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | Tee-Object -FilePath checkstyle-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Checkstyle found issues"
-            }
+        if ($languages -match "Java") {
+          Write-Host "Setting up Java environment and running Checkstyle..."
+          curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
+          java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | Tee-Object -FilePath checkstyle-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Checkstyle found issues"
           }
+        }
 
-          if ($languages -match "PHP") {
-            Write-Host "Setting up PHP environment and running PHPCS..."
-            composer global require "squizlabs/php_codesniffer=*"
-            ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | Tee-Object -FilePath phpcs-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "PHPCS found issues"
-            }
+        if ($languages -match "PHP") {
+          Write-Host "Setting up PHP environment and running PHPCS..."
+          composer global require "squizlabs/php_codesniffer=*"
+          ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | Tee-Object -FilePath phpcs-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "PHPCS found issues"
           }
+        }
 
-          if ($languages -match "Ruby") {
-            Write-Host "Setting up Ruby environment and running RuboCop..."
-            gem install rubocop
-            rubocop | Tee-Object -FilePath rubocop-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "RuboCop found issues"
-            }
+        if ($languages -match "Ruby") {
+          Write-Host "Setting up Ruby environment and running RuboCop..."
+          gem install rubocop
+          rubocop | Tee-Object -FilePath rubocop-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "RuboCop found issues"
           }
+        }
 
-          if ($languages -match "C#") {
-            Write-Host "Setting up .NET environment and running Dotnet Format..."
-            dotnet tool install -g dotnet-format
-            dotnet format | Tee-Object -FilePath dotnet-format-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Dotnet Format found issues"
-            }
+        if ($languages -match "C#") {
+          Write-Host "Setting up .NET environment and running Dotnet Format..."
+          dotnet tool install -g dotnet-format
+          dotnet format | Tee-Object -FilePath dotnet-format-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Dotnet Format found issues"
           }
+        }
 
-          if ($languages -match "Rust") {
-            Write-Host "Setting up Rust environment and running Clippy..."
-            rustup component add clippy
-            cargo clippy --all-targets --all-features -- -D warnings | Tee-Object -FilePath clippy-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Clippy found issues"
-            }
+        if ($languages -match "Rust") {
+          Write-Host "Setting up Rust environment and running Clippy..."
+          rustup component add clippy
+          cargo clippy --all-targets --all-features -- -D warnings | Tee-Object -FilePath clippy-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Clippy found issues"
           }
+        }
 
-          if ($languages -match "Markdown") {
-            Write-Host "Installing MarkdownLint and running it..."
-            sudo apt-get update
-            sudo apt-get install -y npm
-            npm install -g markdownlint-cli
-            markdownlint "**/*.md" | Tee-Object -FilePath markdownlint-report.txt
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "MarkdownLint found issues"
-            }
+        if ($languages -match "Markdown") {
+          Write-Host "Installing MarkdownLint and running it..."
+          sudo apt-get update
+          sudo apt-get install -y npm
+          npm install -g markdownlint-cli
+          markdownlint "**/*.md" | Tee-Object -FilePath markdownlint-report.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "MarkdownLint found issues"
           }
-          
-      - name: Upload ESLint report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'JavaScript')
-        uses: actions/upload-artifact@v3
-        with:
-          name: eslint-report
-          path: eslint-report.txt
+        }
 
-      - name: Upload Bandit report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'Python')
-        uses: actions/upload-artifact@v3
-        with:
-          name: bandit-report
-          path: bandit-report.txt
+    - name: Upload ESLint report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'JavaScript')
+      uses: actions/upload-artifact@v3
+      with:
+        name: eslint-report
+        path: eslint-report.txt
 
-      - name: Upload ShellCheck report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'Shell')
-        uses: actions/upload-artifact@v3
-        with:
-          name: shellcheck-report
-          path: shellcheck-report.txt
+    - name: Upload Bandit report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Python')
+      uses: actions/upload-artifact@v3
+      with:
+        name: bandit-report
+        path: bandit-report.txt
 
-      - name: Upload YAMLLint report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'YAML')
-        uses: actions/upload-artifact@v3
-        with:
-          name: yamllint-report
-          path: yamllint-report.txt
+    - name: Upload ShellCheck report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Shell')
+      uses: actions/upload-artifact@v3
+      with:
+        name: shellcheck-report
+        path: shellcheck-report.txt
 
-      - name: Upload GoLint report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'Go')
-        uses: actions/upload-artifact@v3
-        with:
-          name: golint-report
-          path: golint-report.txt
+    - name: Upload YAMLLint report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'YAML')
+      uses: actions/upload-artifact@v3
+      with:
+        name: yamllint-report
+        path: yamllint-report.txt
 
-      - name: Upload Checkstyle report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'Java')
-        uses: actions/upload-artifact@v3
-        with:
-          name: checkstyle-report
-          path: checkstyle-report.txt
+    - name: Upload GoLint report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Go')
+      uses: actions/upload-artifact@v3
+      with:
+        name: golint-report
+        path: golint-report.txt
 
-      - name: Upload PHPCS report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'PHP')
-        uses: actions/upload-artifact@v3
-        with:
-          name: phpcs-report
-          path: phpcs-report.txt
+    - name: Upload Checkstyle report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Java')
+      uses: actions/upload-artifact@v3
+      with:
+        name: checkstyle-report
+        path: checkstyle-report.txt
 
-      - name: Upload RuboCop report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'Ruby')
-        uses: actions/upload-artifact@v3
-        with:
-          name: rubocop-report
-          path: rubocop-report.txt
+    - name: Upload PHPCS report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'PHP')
+      uses: actions/upload-artifact@v3
+      with:
+        name: phpcs-report
+        path: phpcs-report.txt
 
-      - name: Upload Dotnet Format report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'C#')
-        uses: actions/upload-artifact@v3
-        with:
-          name: dotnet-format-report
-          path: dotnet-format-report.txt
+    - name: Upload RuboCop report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Ruby')
+      uses: actions/upload-artifact@v3
+      with:
+        name: rubocop-report
+        path: rubocop-report.txt
 
-      - name: Upload Clippy report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'Rust')
-        uses: actions/upload-artifact@v3
-        with:
-          name: clippy-report
-          path: clippy-report.txt
+    - name: Upload Dotnet Format report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'C#')
+      uses: actions/upload-artifact@v3
+      with:
+        name: dotnet-format-report
+        path: dotnet-format-report.txt
 
-      - name: Upload MarkdownLint report
-        if: failure() && contains(needs.detect-languages.outputs.languages, 'Markdown')
-        uses: actions/upload-artifact@v3
-        with:
-          name: markdownlint-report
-          path: markdownlint-report.txt
+    - name: Upload Clippy report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Rust')
+      uses: actions/upload-artifact@v3
+      with:
+        name: clippy-report
+        path: clippy-report.txt
+
+    - name: Upload MarkdownLint report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Markdown')
+      uses: actions/upload-artifact@v3
+      with:
+        name: markdownlint-report
+        path: markdownlint-report.txt
 
   coverage:
     name: Code Coverage Analysis
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -298,7 +298,6 @@ lint:
           fi
         else
           echo "No package.json found, skipping npm install and coverage."
-        fi
 
     - name: Upload coverage report
       if: failure()
@@ -311,7 +310,6 @@ lint:
     name: Create or Update Pull Request
     runs-on: ubuntu-latest
     needs: [lint, coverage]
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -337,7 +335,6 @@ lint:
   dependency-update:
     name: Dependency Updates
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -353,7 +350,6 @@ lint:
           npm install
         else
           echo "No package.json found, skipping npm install."
-        fi
 
     - name: Check for outdated dependencies
       run: |
@@ -361,7 +357,6 @@ lint:
           npm outdated
         else
           echo "No package.json found, skipping npm outdated."
-        fi
 
     - name: Update dependencies
       run: |
@@ -369,7 +364,6 @@ lint:
           npm update
         else
           echo "No package.json found, skipping npm update."
-        fi
 
     - name: Commit and push updates
       id: commit-push
@@ -384,15 +378,18 @@ lint:
           git push origin update-dependencies
         else
           echo "No package.json found, skipping dependency update commit."
-        fi
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
-      if: ${{ steps.commit-push.outputs.commit != '' }}
+      if: steps.commit-push.outputs.commit != ''
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "Update dependencies"
         branch: update-dependencies
+        base: main
+        title: "Dependency updates"
+        body: "This PR updates the dependencies to their latest versions."
+
         base: main
         title: "Dependency updates"
         body: "This PR updates the dependencies to their latest versions."
