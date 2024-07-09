@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          node-version: '20'
 
       - name: Install Linguist
         run: |
@@ -39,6 +41,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          node-version: '20'
 
       - name: Set up Python (Linux/macOS)
         if: runner.os != 'Windows'
@@ -314,6 +318,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        node-version: '20'
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -373,6 +379,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        node-version: '20'
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
