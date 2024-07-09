@@ -3,10 +3,10 @@ name: Anti Code Scanner
 on:
   push:
     branches:
-      - test
+      - main
   pull_request:
     branches:
-      - test
+      - main
 
 jobs:
   detect-languages:
@@ -36,20 +36,19 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Node.js environment
-      if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
-
-    - name: Run ESLint
-      if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
+    # Setup and Run Linters
+    - name: Set up environments and run linters
       run: |
-        if [ -f package.json ]; then
+        languages="${{ needs.detect-languages.outputs.languages }}"
+
+        # JavaScript/Node.js
+        if [[ "$languages" == *"JavaScript"* ]]; then
+          echo "Setting up Node.js environment and running ESLint..."
           npm install
           npm install eslint
           npx eslint . | tee eslint-report.txt
@@ -57,181 +56,209 @@ jobs:
           if [ $eslint_failed -ne 0 ]; then
             echo "::error file=eslint-report.txt::ESLint found issues"
           fi
+        fi
+
+        # Python
+        if [[ "$languages" == *"Python"* ]]; then
+          echo "Setting up Python environment and running Bandit..."
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install bandit
+          bandit -r . | tee bandit-report.txt
+          bandit_failed=$?
+          if [ $bandit_failed -ne 0 ]; then
+            echo "::error file=bandit-report.txt::Bandit found issues"
+          fi
+        fi
+
+        # Shell
+        if [[ "$languages" == *"Shell"* ]]; then
+          echo "Installing ShellCheck and running it..."
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck **/*.sh | tee shellcheck-report.txt || true
+          shellcheck_failed=$?
+          if [ $shellcheck_failed -ne 0 ]; then
+            echo "::error file=shellcheck-report.txt::ShellCheck found issues"
+          fi
+        fi
+
+        # YAML
+        if [[ "$languages" == *"YAML"* ]]; then
+          echo "Installing YAMLLint and running it..."
+          sudo apt-get update
+          sudo apt-get install -y yamllint
+          yamllint . | tee yamllint-report.txt
+          yamllint_failed=$?
+          if [ $yamllint_failed -ne 0 ]; then
+            echo "::error file=yamllint-report.txt::YAMLLint found issues"
+          fi
+        fi
+
+        # Go
+        if [[ "$languages" == *"Go"* ]]; then
+          echo "Setting up Go environment and running GoLint..."
+          go install golang.org/x/lint/golint@latest
+          golint ./... | tee golint-report.txt
+          golint_failed=$?
+          if [ $golint_failed -ne 0 ]; then
+            echo "::error file=golint-report.txt::GoLint found issues"
+          fi
+        fi
+
+        # Java
+        if [[ "$languages" == *"Java"* ]]; then
+          echo "Setting up Java environment and running Checkstyle..."
+          curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
+          java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | tee checkstyle-report.txt
+          checkstyle_failed=$?
+          if [ $checkstyle_failed -ne 0 ]; then
+            echo "::error file=checkstyle-report.txt::Checkstyle found issues"
+          fi
+        fi
+
+        # PHP
+        if [[ "$languages" == *"PHP"* ]]; then
+          echo "Setting up PHP environment and running PHPCS..."
+          composer global require "squizlabs/php_codesniffer=*"
+          ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | tee phpcs-report.txt
+          phpcs_failed=$?
+          if [ $phpcs_failed -ne 0 ]; then
+            echo "::error file=phpcs-report.txt::PHPCS found issues"
+          fi
+        fi
+
+        # Ruby
+        if [[ "$languages" == *"Ruby"* ]]; then
+          echo "Setting up Ruby environment and running RuboCop..."
+          gem install rubocop
+          rubocop | tee rubocop-report.txt
+          rubocop_failed=$?
+          if [ $rubocop_failed -ne 0 ]; then
+            echo "::error file=rubocop-report.txt::RuboCop found issues"
+          fi
+        fi
+
+        # C#
+        if [[ "$languages" == *"C#"* ]]; then
+          echo "Setting up .NET environment and running Dotnet Format..."
+          dotnet tool install -g dotnet-format
+          dotnet format | tee dotnet-format-report.txt
+          dotnet_format_failed=$?
+          if [ $dotnet_format_failed -ne 0 ]; then
+            echo "::error file=dotnet-format-report.txt::Dotnet Format found issues"
+          fi
+        fi
+
+        # Rust
+        if [[ "$languages" == *"Rust"* ]]; then
+          echo "Setting up Rust environment and running Clippy..."
+          rustup component add clippy
+          cargo clippy --all-targets --all-features -- -D warnings | tee clippy-report.txt
+          clippy_failed=$?
+          if [ $clippy_failed -ne 0 ]; then
+            echo "::error file=clippy-report.txt::Clippy found issues"
+          fi
+        fi
+
+        # Markdown
+        if [[ "$languages" == *"Markdown"* ]]; then
+          echo "Installing MarkdownLint and running it..."
+          sudo apt-get update
+          sudo apt-get install -y npm
+          npm install -g markdownlint-cli
+          markdownlint "**/*.md" | tee markdownlint-report.txt
+          markdownlint_failed=$?
+          if [ $markdownlint_failed -ne 0 ]; then
+            echo "::error file=markdownlint-report.txt::MarkdownLint found issues"
+          fi
+        fi
+
+        # Check for large log files
+        if [[ "${{ runner.os }}" != 'Windows' ]]; then
+          find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
         else
-          echo "No package.json found, skipping npm install and eslint."
+          Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
         fi
 
-    - name: Set up Python environment
-      if: contains(needs.detect-languages.outputs.languages, 'Python')
-      uses: actions/setup-python@v4
+      shell: bash
+
+    - name: Upload ESLint report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'JavaScript')
+      uses: actions/upload-artifact@v3
       with:
-        python-version: '3.9'
+        name: eslint-report
+        path: eslint-report.txt
 
-    - name: Run Bandit
-      if: contains(needs.detect-languages.outputs.languages, 'Python')
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install bandit
-        bandit -r . | tee bandit-report.txt
-        bandit_failed=$?
-        if [ $bandit_failed -ne 0 ]; then
-          echo "::error file=bandit-report.txt::Bandit found issues"
-        fi
-
-    - name: Install ShellCheck
-      if: contains(needs.detect-languages.outputs.languages, 'Shell')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y shellcheck
-
-    - name: Run ShellCheck
-      if: contains(needs.detect-languages.outputs.languages, 'Shell')
-      run: |
-        shellcheck **/*.sh | tee shellcheck-report.txt || true
-        shellcheck_failed=$?
-        if [ $shellcheck_failed -ne 0 ]; then
-          echo "::error file=shellcheck-report.txt::ShellCheck found issues"
-        fi
-
-    - name: Install YAMLLint
-      if: contains(needs.detect-languages.outputs.languages, 'YAML')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y yamllint
-
-    - name: Run YAMLLint
-      if: contains(needs.detect-languages.outputs.languages, 'YAML')
-      run: |
-        yamllint . | tee yamllint-report.txt
-        yamllint_failed=$?
-        if [ $yamllint_failed -ne 0 ]; then
-          echo "::error file=yamllint-report.txt::YAMLLint found issues"
-        fi
-
-    - name: Set up Go environment
-      if: contains(needs.detect-languages.outputs.languages, 'Go')
-      uses: actions/setup-go@v4
+    - name: Upload Bandit report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Python')
+      uses: actions/upload-artifact@v3
       with:
-        go-version: '1.16'
+        name: bandit-report
+        path: bandit-report.txt
 
-    - name: Run GoLint
-      if: contains(needs.detect-languages.outputs.languages, 'Go')
-      run: |
-        go install golang.org/x/lint/golint@latest
-        golint ./... | tee golint-report.txt
-        golint_failed=$?
-        if [ $golint_failed -ne 0 ]; then
-          echo "::error file=golint-report.txt::GoLint found issues"
-        fi
-
-    - name: Set up Java environment
-      if: contains(needs.detect-languages.outputs.languages, 'Java')
-      uses: actions/setup-java@v3
+    - name: Upload ShellCheck report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Shell')
+      uses: actions/upload-artifact@v3
       with:
-        java-version: '11'
+        name: shellcheck-report
+        path: shellcheck-report.txt
 
-    - name: Run Checkstyle
-      if: contains(needs.detect-languages.outputs.languages, 'Java')
-      run: |
-        curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
-        java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | tee checkstyle-report.txt
-        checkstyle_failed=$?
-        if [ $checkstyle_failed -ne 0 ]; then
-          echo "::error file=checkstyle-report.txt::Checkstyle found issues"
-        fi
-
-    - name: Set up PHP environment
-      if: contains(needs.detect-languages.outputs.languages, 'PHP')
-      uses: shivammathur/setup-php@v2
+    - name: Upload YAMLLint report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'YAML')
+      uses: actions/upload-artifact@v3
       with:
-        php-version: '7.4'
+        name: yamllint-report
+        path: yamllint-report.txt
 
-    - name: Run PHPCS
-      if: contains(needs.detect-languages.outputs.languages, 'PHP')
-      run: |
-        composer global require "squizlabs/php_codesniffer=*"
-        ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | tee phpcs-report.txt
-        phpcs_failed=$?
-        if [ $phpcs_failed -ne 0 ]; then
-          echo "::error file=phpcs-report.txt::PHPCS found issues"
-        fi
-
-    - name: Set up Ruby environment
-      if: contains(needs.detect-languages.outputs.languages, 'Ruby')
-      uses: actions/setup-ruby@v1
+    - name: Upload GoLint report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Go')
+      uses: actions/upload-artifact@v3
       with:
-        ruby-version: '2.7'
+        name: golint-report
+        path: golint-report.txt
 
-    - name: Run RuboCop
-      if: contains(needs.detect-languages.outputs.languages, 'Ruby')
-      run: |
-        gem install rubocop
-        rubocop | tee rubocop-report.txt
-        rubocop_failed=$?
-        if [ $rubocop_failed -ne 0 ]; then
-          echo "::error file=rubocop-report.txt::RuboCop found issues"
-        fi
-
-    - name: Set up .NET environment
-      if: contains(needs.detect-languages.outputs.languages, 'C#')
-      uses: actions/setup-dotnet@v3
+    - name: Upload Checkstyle report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Java')
+      uses: actions/upload-artifact@v3
       with:
-        dotnet-version: '5.0.x'
+        name: checkstyle-report
+        path: checkstyle-report.txt
 
-    - name: Run Dotnet Format
-      if: contains(needs.detect-languages.outputs.languages, 'C#')
-      run: |
-        dotnet tool install -g dotnet-format
-        dotnet format | tee dotnet-format-report.txt
-        dotnet_format_failed=$?
-        if [ $dotnet_format_failed -ne 0 ]; then
-          echo "::error file=dotnet-format-report.txt::Dotnet Format found issues"
-        fi
-
-    - name: Set up Rust environment
-      if: contains(needs.detect-languages.outputs.languages, 'Rust')
-      uses: actions-rs/toolchain@v1
+    - name: Upload PHPCS report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'PHP')
+      uses: actions/upload-artifact@v3
       with:
-        toolchain: stable
+        name: phpcs-report
+        path: phpcs-report.txt
 
-    - name: Run Clippy
-      if: contains(needs.detect-languages.outputs.languages, 'Rust')
-      run: |
-        rustup component add clippy
-        cargo clippy --all-targets --all-features -- -D warnings | tee clippy-report.txt
-        clippy_failed=$?
-        if [ $clippy_failed -ne 0 ]; then
-          echo "::error file=clippy-report.txt::Clippy found issues"
-        fi
+    - name: Upload RuboCop report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Ruby')
+      uses: actions/upload-artifact@v3
+      with:
+        name: rubocop-report
+        path: rubocop-report.txt
 
-    - name: Install MarkdownLint
-      if: contains(needs.detect-languages.outputs.languages, 'Markdown')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y npm
-        npm install -g markdownlint-cli
+    - name: Upload Dotnet Format report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'C#')
+      uses: actions/upload-artifact@v3
+      with:
+        name: dotnet-format-report
+        path: dotnet-format-report.txt
 
-    - name: Run MarkdownLint
-      if: contains(needs.detect-languages.outputs.languages, 'Markdown')
-      run: |
-        markdownlint "**/*.md" | tee markdownlint-report.txt
-        markdownlint_failed=$?
-        if [ $markdownlint_failed -ne 0 ]; then
-          echo "::error file=markdownlint-report.txt::MarkdownLint found issues"
-        fi
+    - name: Upload Clippy report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Rust')
+      uses: actions/upload-artifact@v3
+      with:
+        name: clippy-report
+        path: clippy-report.txt
 
-    - name: Check for large log files (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
-
-    # Check for large log files on Windows
-    - name: Check for large log files (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
-      shell: pwsh
+    - name: Upload MarkdownLint report
+      if: failure() && contains(needs.detect-languages.outputs.languages, 'Markdown')
+      uses: actions/upload-artifact@v3
+      with:
+        name: markdownlint-report
+        path: markdownlint-report.txt
 
   coverage:
     name: Code Coverage Analysis
@@ -246,7 +273,7 @@ jobs:
       with:
         node-version: '16'
 
-    - name: Install dependencies
+    - name: Install dependencies and run coverage
       run: |
         if [ -f package.json ]; then
           npm install
@@ -258,6 +285,13 @@ jobs:
         else
           echo "No package.json found, skipping npm install and coverage."
         fi
+
+    - name: Upload coverage report
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage/ # assuming coverage report is stored in 'coverage/' directory
 
   create-pull-request:
     name: Create or Update Pull Request
@@ -289,6 +323,7 @@ jobs:
   dependency-update:
     name: Dependency Updates
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -323,6 +358,7 @@ jobs:
         fi
 
     - name: Commit and push updates
+      id: commit-push
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
@@ -335,8 +371,6 @@ jobs:
         else
           echo "No package.json found, skipping dependency update commit."
         fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
