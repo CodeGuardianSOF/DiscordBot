@@ -14,7 +14,7 @@ import signal
 import sys
 
 # Set the environment variable to use certifi certificates
-os.environ['SSL_CERT_FILE'] = certifi.where()
+os.environ['SSL_CERT_FILE'] = certifi.where()dads
 
 # Configuration loading and validation
 class BotConfig(BaseModel):
@@ -91,14 +91,14 @@ class MyBot(commands.Bot):
         if self.is_ready():
             logger.debug("Updating status")
             statuses = [
-                "Playing a game",da
+                "Playing a game",
                 "Listening to music",
                 "Watching a movie",
                 "Coding a bot",
                 "Reading a book",
                 "Getting repaired",
                 "Coding myself",
-                "Maintaining Servers",da
+                "Maintaining Servers",
                 "Watching Anime"
             ]
             await self.change_presence(activity=discord.Game(random.choice(statuses)))da
