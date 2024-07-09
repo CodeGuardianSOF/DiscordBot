@@ -1,4 +1,4 @@
-name: Anti Code Scanner
+nname: Anti Code Scanner
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
         echo "Detected languages: $languages"
         echo "languages=$languages" >> $GITHUB_ENV
 
-   lint:
+  lint:
     needs: detect-languages
     runs-on: ${{ matrix.os }}
     strategy:
