@@ -369,8 +369,6 @@ jobs:
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git checkout -b update-dependencies
         if [ -f package.json ]; then
-          npm install
-          npm update
           git commit -am "Update dependencies"
           git push origin update-dependencies
         else
@@ -383,10 +381,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "Update dependencies"
         branch: update-dependencies
-        base: main
-        title: "Dependency updates"
-        body: "This PR updates the dependencies to their latest versions."
-
         base: main
         title: "Dependency updates"
         body: "This PR updates the dependencies to their latest versions."
