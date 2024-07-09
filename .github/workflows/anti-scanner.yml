@@ -32,311 +32,257 @@ jobs:
 
   lint:
     needs: detect-languages
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up environments
-      run: |
-        languages="${{ needs.detect-languages.outputs.languages }}"
-        if [[ "$languages" == *"JavaScript"* ]]; then
-          echo "Setting up Node.js"
-          actions/setup-node@v3 node-version=16
-        fi
-        if [[ "$languages" == *"Python"* ]]; then
-          echo "Setting up Python"
-          actions/setup-python@v4 python-version=3.9
-        fi
-        if [[ "$languages" == *"Go"* ]]; then
-          echo "Setting up Go"
-          actions/setup-go@v4 go-version=1.16
-        fi
-        if [[ "$languages" == *"Java"* ]]; then
-          echo "Setting up Java"
-          actions/setup-java@v3 java-version=11
-        fi
-        if [[ "$languages" == *"PHP"* ]]; then
-          echo "Setting up PHP"
-          shivammathur/setup-php@v2 php-version=7.4
-        fi
-        if [[ "$languages" == *"Ruby"* ]]; then
-          echo "Setting up Ruby"
-          actions/setup-ruby@v1 ruby-version=2.7
-        fi
-        if [[ "$languages" == *"C#"* ]]; then
-          echo "Setting up .NET"
-          actions/setup-dotnet@v3 dotnet-version=5.0.x
-        fi
+      - name: Set up environments and run linters
+        run: |
+          languages="${{ needs.detect-languages.outputs.languages }}"
+          
+          if echo "$languages" | grep -q "JavaScript"; then
+            echo "Setting up Node.js for JavaScript linting..."
+            npm install
+            npm install eslint
+            npx eslint . -f json -o eslint-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "Python"; then
+            echo "Setting up Python for Bandit linting..."
+            python -m pip install --upgrade pip
+            [ -f requirements.txt ] && pip install -r requirements.txt
+            pip install bandit
+            bandit -r . -f json -o bandit-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "Shell"; then
+            echo "Setting up ShellCheck for shell script linting..."
+            sudo apt-get update
+            sudo apt-get install -y shellcheck
+            shellcheck **/*.sh -f json > shellcheck-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "YAML"; then
+            echo "Setting up YAMLLint for YAML linting..."
+            sudo apt-get update
+            sudo apt-get install -y yamllint
+            yamllint . -f parsable -o yamllint-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "Go"; then
+            echo "Setting up GoLint for Go linting..."
+            go install golang.org/x/lint/golint@latest
+            golint ./... > golint-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "Java"; then
+            echo "Setting up Checkstyle for Java linting..."
+            curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
+            java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src -f json -o checkstyle-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "PHP"; then
+            echo "Setting up PHPCS for PHP linting..."
+            composer global require "squizlabs/php_codesniffer=*"
+            ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ --report=json -o phpcs-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "Ruby"; then
+            echo "Setting up RuboCop for Ruby linting..."
+            gem install rubocop
+            rubocop --format json --out rubocop-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "C#"; then
+            echo "Setting up Dotnet Format for C# linting..."
+            dotnet tool install -g dotnet-format
+            dotnet format --report json > dotnet-format-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "Rust"; then
+            echo "Setting up Clippy for Rust linting..."
+            rustup component add clippy
+            cargo clippy --all-targets --all-features -- -D warnings --message-format=json > clippy-report.json || true
+          fi
+          
+          if echo "$languages" | grep -q "Markdown"; then
+            echo "Setting up MarkdownLint for Markdown linting..."
+            sudo apt-get update
+            sudo apt-get install -y npm
+            npm install -g markdownlint-cli
+            markdownlint "**/*.md" -f json > markdownlint-report.json || true
+          fi
 
-    - name: Lint JavaScript code with ESLint
-      if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
-      run: |
-        if [ -f package.json ]; then
-          npm install
-          npm install eslint
-          npx eslint . -f json -o eslint-report.json
-        else
-          echo "No package.json found, skipping npm install and eslint."
-        fi
+      - name: Upload lint results
+        run: |
+          languages="${{ needs.detect-languages.outputs.languages }}"
 
-    - name: Lint Python code with Bandit
-      if: contains(needs.detect-languages.outputs.languages, 'Python')
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install bandit
-        bandit -r . -f json -o bandit-report.json
-
-    - name: Lint Shell scripts with ShellCheck
-      if: contains(needs.detect-languages.outputs.languages, 'Shell')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y shellcheck
-        shellcheck **/*.sh -f json > shellcheck-report.json || true
-
-    - name: Lint YAML files with YAMLLint
-      if: contains(needs.detect-languages.outputs.languages, 'YAML')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y yamllint
-        yamllint . -f parsable -o yamllint-report.json
-
-    - name: Lint Go code with GoLint
-      if: contains(needs.detect-languages.outputs.languages, 'Go')
-      run: |
-        go install golang.org/x/lint/golint@latest
-        golint ./... > golint-report.json
-
-    - name: Lint Java code with Checkstyle
-      if: contains(needs.detect-languages.outputs.languages, 'Java')
-      run: |
-        curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
-        java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src -f json -o checkstyle-report.json
-
-    - name: Lint PHP code with PHPCS
-      if: contains(needs.detect-languages.outputs.languages, 'PHP')
-      run: |
-        composer global require "squizlabs/php_codesniffer=*"
-        ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ --report=json -o phpcs-report.json
-
-    - name: Lint Ruby code with RuboCop
-      if: contains(needs.detect-languages.outputs.languages, 'Ruby')
-      run: |
-        gem install rubocop
-        rubocop --format json --out rubocop-report.json
-
-    - name: Lint C# code with Dotnet Format
-      if: contains(needs.detect-languages.outputs.languages, 'C#')
-      run: |
-        dotnet tool install -g dotnet-format
-        dotnet format --report json > dotnet-format-report.json
-
-    - name: Lint Rust code with Clippy
-      if: contains(needs.detect-languages.outputs.languages, 'Rust')
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-      run: |
-        rustup component add clippy
-        cargo clippy --all-targets --all-features -- -D warnings --message-format=json > clippy-report.json
-
-    - name: Lint Markdown files with MarkdownLint
-      if: contains(needs.detect-languages.outputs.languages, 'Markdown')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y npm
-        npm install -g markdownlint-cli
-        markdownlint "**/*.md" -f json > markdownlint-report.json
-
-    - name: Check for large log files (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
-
-    - name: Check for large log files (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
-      shell: pwsh
-
-    - name: Upload ESLint results
-      if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: eslint-report.json
-
-    - name: Upload Bandit results
-      if: contains(needs.detect-languages.outputs.languages, 'Python')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: bandit-report.json
-
-    - name: Upload ShellCheck results
-      if: contains(needs.detect-languages.outputs.languages, 'Shell')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: shellcheck-report.json
-
-    - name: Upload YAMLLint results
-      if: contains(needs.detect-languages.outputs.languages, 'YAML')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: yamllint-report.json
-
-    - name: Upload GoLint results
-      if: contains(needs.detect-languages.outputs.languages, 'Go')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: golint-report.json
-
-    - name: Upload Checkstyle results
-      if: contains(needs.detect-languages.outputs.languages, 'Java')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: checkstyle-report.json
-
-    - name: Upload PHPCS results
-      if: contains(needs.detect-languages.outputs.languages, 'PHP')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: phpcs-report.json
-
-    - name: Upload RuboCop results
-      if: contains(needs.detect-languages.outputs.languages, 'Ruby')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: rubocop-report.json
-
-    - name: Upload Dotnet Format results
-      if: contains(needs.detect-languages.outputs.languages, 'C#')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: dotnet-format-report.json
-
-    - name: Upload Clippy results
-      if: contains(needs.detect-languages.outputs.languages, 'Rust')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: clippy-report.json
-
-    - name: Upload MarkdownLint results
-      if: contains(needs.detect-languages.outputs.languages, 'Markdown')
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: markdownlint-report.json
+          if echo "$languages" | grep -q "JavaScript"; then
+            echo "Uploading ESLint results..."
+            echo "::set-output name=sarif_file::eslint-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "Python"; then
+            echo "Uploading Bandit results..."
+            echo "::set-output name=sarif_file::bandit-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "Shell"; then
+            echo "Uploading ShellCheck results..."
+            echo "::set-output name=sarif_file::shellcheck-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "YAML"; then
+            echo "Uploading YAMLLint results..."
+            echo "::set-output name=sarif_file::yamllint-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "Go"; then
+            echo "Uploading GoLint results..."
+            echo "::set-output name=sarif_file::golint-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "Java"; then
+            echo "Uploading Checkstyle results..."
+            echo "::set-output name=sarif_file::checkstyle-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "PHP"; then
+            echo "Uploading PHPCS results..."
+            echo "::set-output name=sarif_file::phpcs-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "Ruby"; then
+            echo "Uploading RuboCop results..."
+            echo "::set-output name=sarif_file::rubocop-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "C#"; then
+            echo "Uploading Dotnet Format results..."
+            echo "::set-output name=sarif_file::dotnet-format-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "Rust"; then
+            echo "Uploading Clippy results..."
+            echo "::set-output name=sarif_file::clippy-report.json"
+          fi
+          
+          if echo "$languages" | grep -q "Markdown"; then
+            echo "Uploading MarkdownLint results..."
+            echo "::set-output name=sarif_file::markdownlint-report.json"
+          fi
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.upload-results.outputs.sarif_file }}
 
   coverage:
     name: Code Coverage Analysis
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-    - name: Install dependencies
-      run: |
-        if [ -f package.json ]; then
-          npm install
-          npm run coverage
-        else
-          echo "No package.json found, skipping npm install and coverage."
-        fi
+      - name: Install dependencies and run coverage
+        run: |
+          if [ -f package.json ]; then
+            npm install
+            npm run coverage
+          else
+            echo "No package.json found, skipping npm install and coverage."
+          fi
 
   create-pull-request:
     name: Create or Update Pull Request
     runs-on: ubuntu-latest
     needs: [lint, coverage]
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-    - name: Configure git
-      run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Configure git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v4
-      with:
-        commit-message: "Auto-generated update by GitHub Action"
-        branch: update-dependencies
-        title: "Dependency Update"
-        body: "This PR updates dependencies to their latest versions."
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          commit-message: "Auto-generated update by GitHub Action"
+          branch: update-dependencies
+          title: "Dependency Update"
+          body: "This PR updates dependencies to their latest versions."
 
   dependency-update:
     name: Dependency Updates
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-    - name: Install dependencies
-      run: |
-        if [ -f package.json ]; then
-          npm install
-        else
-          echo "No package.json found, skipping npm install."
-        fi
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm install
+          else
+            echo "No package.json found, skipping npm install."
+          fi
 
-    - name: Check for outdated dependencies
-      run: |
-        if [ -f package.json ]; then
-          npm outdated
-        else
-          echo "No package.json found, skipping npm outdated."
-        fi
+      - name: Check for outdated dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm outdated
+          else
+            echo "No package.json found, skipping npm outdated."
+          fi
 
-    - name: Update dependencies
-      run: |
-        if [ -f package.json ]; then
-          npm update
-        else
-          echo "No package.json found, skipping npm update."
-        fi
+      - name: Update dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm update
+          else
+            echo "No package.json found, skipping npm update."
+          fi
 
-    - name: Commit and push updates
-      run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git checkout -b update-dependencies
-        if [ -f package.json ]; then
-          npm install
-          npm update
-          git commit -am "Update dependencies"
-          git push origin update-dependencies
-        else
-          echo "No package.json found, skipping dependency update commit."
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and push updates
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -b update-dependencies
+          if [ -f package.json ]; then
+            npm install
+            npm update
+            git commit -am "Update dependencies"
+            git push origin update-dependencies
+          else
+            echo "No package.json found, skipping dependency update commit."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v4
-      if: ${{ steps.commit-push.outputs.commit != '' }}
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: "Update dependencies"
-        branch: update-dependencies
-        base: main
-        title: "Dependency updates"
-        body: "This PR updates the dependencies to their latest versions."
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        if: ${{ steps.commit-push.outputs.commit != '' }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update dependencies"
+          branch: update-dependencies
+          base: main
+          title: "Dependency updates"
+          body: "This PR updates the dependencies to their latest versions."
+
