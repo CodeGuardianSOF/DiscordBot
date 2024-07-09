@@ -1,4 +1,4 @@
-nname: Anti Code Scanner
+name: Anti Code Scanner
 
 on:
   push:
