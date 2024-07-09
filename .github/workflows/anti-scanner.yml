@@ -29,7 +29,7 @@ jobs:
           languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
           echo "languages=$languages" >> $GITHUB_ENV
           echo "::set-output name=languages::$languages"
-jobs:
+
   lint:
     needs: detect-languages
     runs-on: ${{ matrix.os }}
@@ -121,116 +121,116 @@ jobs:
             fi
           fi
 
-    - name: Set up environments and run linters (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $languages = "${{ env.languages }}"
-        Write-Host "Detected languages: $languages"
+      - name: Set up environments and run linters (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $languages = "${{ env.languages }}"
+          Write-Host "Detected languages: $languages"
 
-        if ($languages -match "JavaScript") {
-          Write-Host "Setting up Node.js environment and running ESLint..."
-          npm install
-          npm install eslint
-          npx eslint . | Tee-Object -FilePath eslint-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "ESLint found issues"
-          }
-        }
-
-        if ($languages -match "Python") {
-          Write-Host "Setting up Python environment and running Bandit and Flake8..."
-          python -m pip install --upgrade pip
-          if (Test-Path requirements.txt) { pip install -r requirements.txt }
-          pip install bandit flake8
-
-          Write-Host "Running Bandit..."
-          bandit -r . | Tee-Object -FilePath bandit-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Bandit found issues"
+          if ($languages -match "JavaScript") {
+            Write-Host "Setting up Node.js environment and running ESLint..."
+            npm install
+            npm install eslint
+            npx eslint . | Tee-Object -FilePath eslint-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "ESLint found issues"
+            }
           }
 
-          Write-Host "Running Flake8..."
-          flake8 . | Tee-Object -FilePath flake8-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Flake8 found issues"
-          }
-        }
+          if ($languages -match "Python") {
+            Write-Host "Setting up Python environment and running Bandit and Flake8..."
+            python -m pip install --upgrade pip
+            if (Test-Path requirements.txt) { pip install -r requirements.txt }
+            pip install bandit flake8
 
-        if ($languages -match "YAML") {
-          Write-Host "Installing YAMLLint and running it..."
-          sudo apt-get update
-          sudo apt-get install -y yamllint
-          yamllint . | Tee-Object -FilePath yamllint-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "YAMLLint found issues"
-          }
-        }
+            Write-Host "Running Bandit..."
+            bandit -r . | Tee-Object -FilePath bandit-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Bandit found issues"
+            }
 
-        if ($languages -match "Go") {
-          Write-Host "Setting up Go environment and running GoLint..."
-          go install golang.org/x/lint/golint@latest
-          golint ./... | Tee-Object -FilePath golint-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "GoLint found issues"
+            Write-Host "Running Flake8..."
+            flake8 . | Tee-Object -FilePath flake8-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Flake8 found issues"
+            }
           }
-        }
 
-        if ($languages -match "Java") {
-          Write-Host "Setting up Java environment and running Checkstyle..."
-          curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
-          java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | Tee-Object -FilePath checkstyle-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Checkstyle found issues"
+          if ($languages -match "YAML") {
+            Write-Host "Installing YAMLLint and running it..."
+            sudo apt-get update
+            sudo apt-get install -y yamllint
+            yamllint . | Tee-Object -FilePath yamllint-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "YAMLLint found issues"
+            }
           }
-        }
 
-        if ($languages -match "PHP") {
-          Write-Host "Setting up PHP environment and running PHPCS..."
-          composer global require "squizlabs/php_codesniffer=*"
-          ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | Tee-Object -FilePath phpcs-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "PHPCS found issues"
+          if ($languages -match "Go") {
+            Write-Host "Setting up Go environment and running GoLint..."
+            go install golang.org/x/lint/golint@latest
+            golint ./... | Tee-Object -FilePath golint-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "GoLint found issues"
+            }
           }
-        }
 
-        if ($languages -match "Ruby") {
-          Write-Host "Setting up Ruby environment and running RuboCop..."
-          gem install rubocop
-          rubocop | Tee-Object -FilePath rubocop-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "RuboCop found issues"
+          if ($languages -match "Java") {
+            Write-Host "Setting up Java environment and running Checkstyle..."
+            curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
+            java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | Tee-Object -FilePath checkstyle-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Checkstyle found issues"
+            }
           }
-        }
 
-        if ($languages -match "C#") {
-          Write-Host "Setting up .NET environment and running Dotnet Format..."
-          dotnet tool install -g dotnet-format
-          dotnet format | Tee-Object -FilePath dotnet-format-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Dotnet Format found issues"
+          if ($languages -match "PHP") {
+            Write-Host "Setting up PHP environment and running PHPCS..."
+            composer global require "squizlabs/php_codesniffer=*"
+            ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | Tee-Object -FilePath phpcs-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "PHPCS found issues"
+            }
           }
-        }
 
-        if ($languages -match "Rust") {
-          Write-Host "Setting up Rust environment and running Clippy..."
-          rustup component add clippy
-          cargo clippy --all-targets --all-features -- -D warnings | Tee-Object -FilePath clippy-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Clippy found issues"
+          if ($languages -match "Ruby") {
+            Write-Host "Setting up Ruby environment and running RuboCop..."
+            gem install rubocop
+            rubocop | Tee-Object -FilePath rubocop-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "RuboCop found issues"
+            }
           }
-        }
 
-        if ($languages -match "Markdown") {
-          Write-Host "Installing MarkdownLint and running it..."
-          sudo apt-get update
-          sudo apt-get install -y npm
-          npm install -g markdownlint-cli
-          markdownlint "**/*.md" | Tee-Object -FilePath markdownlint-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "MarkdownLint found issues"
+          if ($languages -match "C#") {
+            Write-Host "Setting up .NET environment and running Dotnet Format..."
+            dotnet tool install -g dotnet-format
+            dotnet format | Tee-Object -FilePath dotnet-format-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Dotnet Format found issues"
+            }
           }
-        }
+
+          if ($languages -match "Rust") {
+            Write-Host "Setting up Rust environment and running Clippy..."
+            rustup component add clippy
+            cargo clippy --all-targets --all-features -- -D warnings | Tee-Object -FilePath clippy-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Clippy found issues"
+            }
+          }
+
+          if ($languages -match "Markdown") {
+            Write-Host "Installing MarkdownLint and running it..."
+            sudo apt-get update
+            sudo apt-get install -y npm
+            npm install -g markdownlint-cli
+            markdownlint "**/*.md" | Tee-Object -FilePath markdownlint-report.txt
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "MarkdownLint found issues"
+            }
+          }
 
     - name: Upload ESLint report
       if: failure() && contains(needs.detect-languages.outputs.languages, 'JavaScript')
