@@ -28,8 +28,8 @@ jobs:
         run: |
           languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
           echo "languages=$languages" >> $GITHUB_ENV
-          echo "::set-output name=languages::$languages"
-
+          echo "languages=$languages" >> $GITHUB_OUTPUT
+          
   lint:
     needs: detect-languages
     runs-on: ${{ matrix.os }}
@@ -159,8 +159,7 @@ jobs:
 
           if ($languages -match "YAML") {
             Write-Host "Installing YAMLLint and running it..."
-            sudo apt-get update
-            sudo apt-get install -y yamllint
+            winget install yamllint
             yamllint . | Tee-Object -FilePath yamllint-report.txt
             if ($LASTEXITCODE -ne 0) {
               Write-Error "YAMLLint found issues"
@@ -232,82 +231,82 @@ jobs:
             }
           }
 
-    - name: Upload ESLint report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'JavaScript')
-      uses: actions/upload-artifact@v3
-      with:
-        name: eslint-report
-        path: eslint-report.txt
+      - name: Upload ESLint report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'JavaScript')
+        uses: actions/upload-artifact@v3
+        with:
+          name: eslint-report
+          path: eslint-report.txt
 
-    - name: Upload Bandit report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'Python')
-      uses: actions/upload-artifact@v3
-      with:
-        name: bandit-report
-        path: bandit-report.txt
+      - name: Upload Bandit report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'Python')
+        uses: actions/upload-artifact@v3
+        with:
+          name: bandit-report
+          path: bandit-report.txt
 
-    - name: Upload Flake8 report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'Python')
-      uses: actions/upload-artifact@v3
-      with:
-        name: flake8-report
-        path: flake8-report.txt
+      - name: Upload Flake8 report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'Python')
+        uses: actions/upload-artifact@v3
+        with:
+          name: flake8-report
+          path: flake8-report.txt
 
-    - name: Upload YAMLLint report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'YAML')
-      uses: actions/upload-artifact@v3
-      with:
-        name: yamllint-report
-        path: yamllint-report.txt
+      - name: Upload YAMLLint report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'YAML')
+        uses: actions/upload-artifact@v3
+        with:
+          name: yamllint-report
+          path: yamllint-report.txt
 
-    - name: Upload GoLint report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'Go')
-      uses: actions/upload-artifact@v3
-      with:
-        name: golint-report
-        path: golint-report.txt
+      - name: Upload GoLint report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'Go')
+        uses: actions/upload-artifact@v3
+        with:
+          name: golint-report
+          path: golint-report.txt
 
-    - name: Upload Checkstyle report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'Java')
-      uses: actions/upload-artifact@v3
-      with:
-        name: checkstyle-report
-        path: checkstyle-report.txt
+      - name: Upload Checkstyle report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'Java')
+        uses: actions/upload-artifact@v3
+        with:
+          name: checkstyle-report
+          path: checkstyle-report.txt
 
-    - name: Upload PHPCS report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'PHP')
-      uses: actions/upload-artifact@v3
-      with:
-        name: phpcs-report
-        path: phpcs-report.txt
+      - name: Upload PHPCS report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'PHP')
+        uses: actions/upload-artifact@v3
+        with:
+          name: phpcs-report
+          path: phpcs-report.txt
 
-    - name: Upload RuboCop report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'Ruby')
-      uses: actions/upload-artifact@v3
-      with:
-        name: rubocop-report
-        path: rubocop-report.txt
+      - name: Upload RuboCop report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'Ruby')
+        uses: actions/upload-artifact@v3
+        with:
+          name: rubocop-report
+          path: rubocop-report.txt
 
-    - name: Upload Dotnet Format report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'C#')
-      uses: actions/upload-artifact@v3
-      with:
-        name: dotnet-format-report
-        path: dotnet-format-report.txt
+      - name: Upload Dotnet Format report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'C#')
+        uses: actions/upload-artifact@v3
+        with:
+          name: dotnet-format-report
+          path: dotnet-format-report.txt
 
-    - name: Upload Clippy report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'Rust')
-      uses: actions/upload-artifact@v3
-      with:
-        name: clippy-report
-        path: clippy-report.txt
+      - name: Upload Clippy report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'Rust')
+        uses: actions/upload-artifact@v3
+        with:
+          name: clippy-report
+          path: clippy-report.txt
 
-    - name: Upload MarkdownLint report
-      if: failure() && contains(needs.detect-languages.outputs.languages, 'Markdown')
-      uses: actions/upload-artifact@v3
-      with:
-        name: markdownlint-report
-        path: markdownlint-report.txt
+      - name: Upload MarkdownLint report
+        if: failure() && contains(needs.detect-languages.outputs.languages, 'Markdown')
+        uses: actions/upload-artifact@v3
+        with:
+          name: markdownlint-report
+          path: markdownlint-report.txt
 
   coverage:
     name: Code Coverage Analysis
