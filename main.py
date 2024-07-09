@@ -1,4 +1,4 @@
-import os
+import o
 import yaml
 import certifi
 import discord
