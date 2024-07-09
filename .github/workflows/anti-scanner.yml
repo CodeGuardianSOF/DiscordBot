@@ -29,6 +29,9 @@ jobs:
         languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
         echo "Detected languages: $languages"
         echo "languages=$languages" >> $GITHUB_ENV
+        echo "::set-output name=languages::$languages"
+      env:
+        GITHUB_ENV: ${{ steps.detect.outputs.languages }}
 
   lint:
     needs: detect-languages
@@ -107,6 +110,17 @@ jobs:
           fi
         fi
 
+        if [[ "$languages" == *"YAML"* ]]; then
+          echo "Installing YAMLLint and running it..."
+          sudo apt-get update
+          sudo apt-get install -y yamllint
+          yamllint . | tee yamllint-report.txt
+          yamllint_failed=$?
+          if [ $yamllint_failed -ne 0 ]; then
+            echo "::error file=yamllint-report.txt::YAMLLint found issues"
+          fi
+        fi
+
     - name: Set up environments and run linters (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
@@ -140,16 +154,6 @@ jobs:
           flake8 . | Tee-Object -FilePath flake8-report.txt
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Flake8 found issues"
-          }
-        }
-
-        if ($languages -match "Shell") {
-          Write-Host "Installing ShellCheck and running it..."
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
-          shellcheck **/*.sh | Tee-Object -FilePath shellcheck-report.txt
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "ShellCheck found issues"
           }
         }
 
