@@ -40,198 +40,194 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Node.js environment
-      if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
+    - name: Set up environments
+      run: |
+        languages="${{ needs.detect-languages.outputs.languages }}"
+        if [[ "$languages" == *"JavaScript"* ]]; then
+          echo "Setting up Node.js"
+          actions/setup-node@v3 node-version=16
+        fi
+        if [[ "$languages" == *"Python"* ]]; then
+          echo "Setting up Python"
+          actions/setup-python@v4 python-version=3.9
+        fi
+        if [[ "$languages" == *"Go"* ]]; then
+          echo "Setting up Go"
+          actions/setup-go@v4 go-version=1.16
+        fi
+        if [[ "$languages" == *"Java"* ]]; then
+          echo "Setting up Java"
+          actions/setup-java@v3 java-version=11
+        fi
+        if [[ "$languages" == *"PHP"* ]]; then
+          echo "Setting up PHP"
+          shivammathur/setup-php@v2 php-version=7.4
+        fi
+        if [[ "$languages" == *"Ruby"* ]]; then
+          echo "Setting up Ruby"
+          actions/setup-ruby@v1 ruby-version=2.7
+        fi
+        if [[ "$languages" == *"C#"* ]]; then
+          echo "Setting up .NET"
+          actions/setup-dotnet@v3 dotnet-version=5.0.x
+        fi
 
-    - name: Run ESLint
+    - name: Lint JavaScript code with ESLint
       if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
       run: |
         if [ -f package.json ]; then
           npm install
           npm install eslint
-          npx eslint . | tee eslint-report.txt
-          eslint_failed=$?
-          if [ $eslint_failed -ne 0 ]; then
-            echo "::error file=eslint-report.txt::ESLint found issues"
-          fi
+          npx eslint . -f json -o eslint-report.json
         else
           echo "No package.json found, skipping npm install and eslint."
         fi
 
-    - name: Set up Python environment
-      if: contains(needs.detect-languages.outputs.languages, 'Python')
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-
-    - name: Run Bandit
+    - name: Lint Python code with Bandit
       if: contains(needs.detect-languages.outputs.languages, 'Python')
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install bandit
-        bandit -r . | tee bandit-report.txt
-        bandit_failed=$?
-        if [ $bandit_failed -ne 0 ]; then
-          echo "::error file=bandit-report.txt::Bandit found issues"
-        fi
+        bandit -r . -f json -o bandit-report.json
 
-    - name: Install ShellCheck
+    - name: Lint Shell scripts with ShellCheck
       if: contains(needs.detect-languages.outputs.languages, 'Shell')
       run: |
         sudo apt-get update
         sudo apt-get install -y shellcheck
+        shellcheck **/*.sh -f json > shellcheck-report.json || true
 
-    - name: Run ShellCheck
-      if: contains(needs.detect-languages.outputs.languages, 'Shell')
-      run: |
-        shellcheck **/*.sh | tee shellcheck-report.txt || true
-        shellcheck_failed=$?
-        if [ $shellcheck_failed -ne 0 ]; then
-          echo "::error file=shellcheck-report.txt::ShellCheck found issues"
-        fi
-
-    - name: Install YAMLLint
+    - name: Lint YAML files with YAMLLint
       if: contains(needs.detect-languages.outputs.languages, 'YAML')
       run: |
         sudo apt-get update
         sudo apt-get install -y yamllint
+        yamllint . -f parsable -o yamllint-report.json
 
-    - name: Run YAMLLint
-      if: contains(needs.detect-languages.outputs.languages, 'YAML')
-      run: |
-        yamllint . | tee yamllint-report.txt
-        yamllint_failed=$?
-        if [ $yamllint_failed -ne 0 ]; then
-          echo "::error file=yamllint-report.txt::YAMLLint found issues"
-        fi
-
-    - name: Set up Go environment
-      if: contains(needs.detect-languages.outputs.languages, 'Go')
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.16'
-
-    - name: Run GoLint
+    - name: Lint Go code with GoLint
       if: contains(needs.detect-languages.outputs.languages, 'Go')
       run: |
         go install golang.org/x/lint/golint@latest
-        golint ./... | tee golint-report.txt
-        golint_failed=$?
-        if [ $golint_failed -ne 0 ]; then
-          echo "::error file=golint-report.txt::GoLint found issues"
-        fi
+        golint ./... > golint-report.json
 
-    - name: Set up Java environment
-      if: contains(needs.detect-languages.outputs.languages, 'Java')
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-
-    - name: Run Checkstyle
+    - name: Lint Java code with Checkstyle
       if: contains(needs.detect-languages.outputs.languages, 'Java')
       run: |
         curl -LJO https://github.com/checkstyle/checkstyle/releases/download/checkstyle-8.41.1/checkstyle-8.41.1-all.jar
-        java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src | tee checkstyle-report.txt
-        checkstyle_failed=$?
-        if [ $checkstyle_failed -ne 0 ]; then
-          echo "::error file=checkstyle-report.txt::Checkstyle found issues"
-        fi
+        java -jar checkstyle-8.41.1-all.jar -c /google_checks.xml src -f json -o checkstyle-report.json
 
-    - name: Set up PHP environment
-      if: contains(needs.detect-languages.outputs.languages, 'PHP')
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '7.4'
-
-    - name: Run PHPCS
+    - name: Lint PHP code with PHPCS
       if: contains(needs.detect-languages.outputs.languages, 'PHP')
       run: |
         composer global require "squizlabs/php_codesniffer=*"
-        ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ | tee phpcs-report.txt
-        phpcs_failed=$?
-        if [ $phpcs_failed -ne 0 ]; then
-          echo "::error file=phpcs-report.txt::PHPCS found issues"
-        fi
+        ~/.composer/vendor/bin/phpcs --standard=PSR2 src/ --report=json -o phpcs-report.json
 
-    - name: Set up Ruby environment
-      if: contains(needs.detect-languages.outputs.languages, 'Ruby')
-      uses: actions/setup-ruby@v1
-      with:
-        ruby-version: '2.7'
-
-    - name: Run RuboCop
+    - name: Lint Ruby code with RuboCop
       if: contains(needs.detect-languages.outputs.languages, 'Ruby')
       run: |
         gem install rubocop
-        rubocop | tee rubocop-report.txt
-        rubocop_failed=$?
-        if [ $rubocop_failed -ne 0 ]; then
-          echo "::error file=rubocop-report.txt::RuboCop found issues"
-        fi
+        rubocop --format json --out rubocop-report.json
 
-    - name: Set up .NET environment
-      if: contains(needs.detect-languages.outputs.languages, 'C#')
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '5.0.x'
-
-    - name: Run Dotnet Format
+    - name: Lint C# code with Dotnet Format
       if: contains(needs.detect-languages.outputs.languages, 'C#')
       run: |
         dotnet tool install -g dotnet-format
-        dotnet format | tee dotnet-format-report.txt
-        dotnet_format_failed=$?
-        if [ $dotnet_format_failed -ne 0 ]; then
-          echo "::error file=dotnet-format-report.txt::Dotnet Format found issues"
-        fi
+        dotnet format --report json > dotnet-format-report.json
 
-    - name: Set up Rust environment
+    - name: Lint Rust code with Clippy
       if: contains(needs.detect-languages.outputs.languages, 'Rust')
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-
-    - name: Run Clippy
-      if: contains(needs.detect-languages.outputs.languages, 'Rust')
       run: |
         rustup component add clippy
-        cargo clippy --all-targets --all-features -- -D warnings | tee clippy-report.txt
-        clippy_failed=$?
-        if [ $clippy_failed -ne 0 ]; then
-          echo "::error file=clippy-report.txt::Clippy found issues"
-        fi
+        cargo clippy --all-targets --all-features -- -D warnings --message-format=json > clippy-report.json
 
-    - name: Install MarkdownLint
+    - name: Lint Markdown files with MarkdownLint
       if: contains(needs.detect-languages.outputs.languages, 'Markdown')
       run: |
         sudo apt-get update
         sudo apt-get install -y npm
         npm install -g markdownlint-cli
-
-    - name: Run MarkdownLint
-      if: contains(needs.detect-languages.outputs.languages, 'Markdown')
-      run: |
-        markdownlint "**/*.md" | tee markdownlint-report.txt
-        markdownlint_failed=$?
-        if [ $markdownlint_failed -ne 0 ]; then
-          echo "::error file=markdownlint-report.txt::MarkdownLint found issues"
-        fi
+        markdownlint "**/*.md" -f json > markdownlint-report.json
 
     - name: Check for large log files (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
         find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
 
-    # Check for large log files on Windows
     - name: Check for large log files (Windows)
       if: runner.os == 'Windows'
       run: |
         Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
       shell: pwsh
+
+    - name: Upload ESLint results
+      if: contains(needs.detect-languages.outputs.languages, 'JavaScript')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: eslint-report.json
+
+    - name: Upload Bandit results
+      if: contains(needs.detect-languages.outputs.languages, 'Python')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: bandit-report.json
+
+    - name: Upload ShellCheck results
+      if: contains(needs.detect-languages.outputs.languages, 'Shell')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: shellcheck-report.json
+
+    - name: Upload YAMLLint results
+      if: contains(needs.detect-languages.outputs.languages, 'YAML')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: yamllint-report.json
+
+    - name: Upload GoLint results
+      if: contains(needs.detect-languages.outputs.languages, 'Go')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: golint-report.json
+
+    - name: Upload Checkstyle results
+      if: contains(needs.detect-languages.outputs.languages, 'Java')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: checkstyle-report.json
+
+    - name: Upload PHPCS results
+      if: contains(needs.detect-languages.outputs.languages, 'PHP')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: phpcs-report.json
+
+    - name: Upload RuboCop results
+      if: contains(needs.detect-languages.outputs.languages, 'Ruby')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: rubocop-report.json
+
+    - name: Upload Dotnet Format results
+      if: contains(needs.detect-languages.outputs.languages, 'C#')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: dotnet-format-report.json
+
+    - name: Upload Clippy results
+      if: contains(needs.detect-languages.outputs.languages, 'Rust')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: clippy-report.json
+
+    - name: Upload MarkdownLint results
+      if: contains(needs.detect-languages.outputs.languages, 'Markdown')
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: markdownlint-report.json
 
   coverage:
     name: Code Coverage Analysis
@@ -251,10 +247,6 @@ jobs:
         if [ -f package.json ]; then
           npm install
           npm run coverage
-          coverage_failed=$?
-          if [ $coverage_failed -ne 0 ]; then
-            echo "::error::Code coverage analysis found issues"
-          fi
         else
           echo "No package.json found, skipping npm install and coverage."
         fi
