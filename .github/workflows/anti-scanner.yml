@@ -3,10 +3,10 @@ name: Anti Code Scanner
 on:
   push:
     branches:
-      - main
+      - test
   pull_request:
     branches:
-      - main
+      - test
 
 jobs:
   detect-languages:
