@@ -421,7 +421,7 @@ jobs:
       uses: peter-evans/create-pull-request@v4
       if: steps.commit-push.outputs.commit != ''
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.MY_TOKEN }}
         commit-message: "Update dependencies"
         branch: update-dependencies
         base: main
