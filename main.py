@@ -30,7 +30,7 @@ class LoggingConfig(BaseModel):
 class Config(BaseModel):
     bot: BotConfig
     logging: LoggingConfig
-ddadadada
+
 def load_config():
         with open('config/config.yaml', 'r') as config_file:
             config_data = yaml.safe_load(config_file)
