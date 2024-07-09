@@ -14,26 +14,22 @@ jobs:
     outputs:
       languages: ${{ steps.detect.outputs.languages }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install Linguist
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ruby-full
-        sudo gem install github-linguist
+      - name: Install Linguist
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby-full
+          sudo gem install github-linguist
 
-    - name: Detect languages
-      id: detect
-      run: |
-        languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
-        echo "Detected languages: $languages"
-        echo "languages=$languages" >> $GITHUB_ENV
-        echo "languages=$languages" >> $GITHUB_OUTPUT
-      env:
-        GITHUB_ENV: ${{ steps.detect.outputs.languages }}
-        GITHUB_OUTPUT: ${{ steps.detect.outputs.languages }}
-
+      - name: Detect languages
+        id: detect
+        run: |
+          languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
+          echo "languages=$languages" >> $GITHUB_ENV
+          echo "::set-output name=languages::$languages"
+jobs:
   lint:
     needs: detect-languages
     runs-on: ${{ matrix.os }}
@@ -41,86 +37,89 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Python (Linux/macOS)
-      if: runner.os != 'Windows'
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
+      - name: Set up Python (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
 
-    - name: Set up Python (Windows)
-      if: runner.os == 'Windows'
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
+      - name: Set up Python (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-    - name: Check for large log files (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
+      - name: Set languages variable
+        run: echo "languages=${{ needs.detect-languages.outputs.languages }}" >> $GITHUB_ENV
 
-    - name: Check for large log files (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
+      - name: Check for large log files (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
 
-    - name: Set up environments and run linters (Linux/macOS)
-      if: runner.os != 'Windows'
-      shell: bash
-      run: |
-        languages="${{ env.languages }}"
-        echo "Detected languages: $languages"
+      - name: Check for large log files (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
 
-        if [[ "$languages" == *"JavaScript"* ]]; then
-          echo "Setting up Node.js environment and running ESLint..."
-          npm install
-          npm install eslint
-          npx eslint . | tee eslint-report.txt
-          eslint_failed=$?
-          if [ $eslint_failed -ne 0 ]; then
-            echo "::error file=eslint-report.txt::ESLint found issues"
-          fi
-        fi
+      - name: Set up environments and run linters (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          languages="${{ env.languages }}"
+          echo "Detected languages: $languages"
 
-        if [[ "$languages" == *"Python"* ]]; then
-          echo "Setting up Python environment and running Bandit and Flake8..."
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install bandit flake8
-          
-          echo "Running Bandit..."
-          bandit -r . | tee bandit-report.txt
-          bandit_failed=$?
-          if [ $bandit_failed -ne 0 ]; then
-            echo "::error file=bandit-report.txt::Bandit found issues"
+          if [[ "$languages" == *"JavaScript"* ]]; then
+            echo "Setting up Node.js environment and running ESLint..."
+            npm install
+            npm install eslint
+            npx eslint . | tee eslint-report.txt
+            eslint_failed=$?
+            if [ $eslint_failed -ne 0 ]; then
+              echo "::error file=eslint-report.txt::ESLint found issues"
+            fi
           fi
 
-          echo "Running Flake8..."
-          flake8 . | tee flake8-report.txt
-          flake8_failed=$?
-          if [ $flake8_failed -ne 0 ]; then
-            echo "::error file=flake8-report.txt::Flake8 found issues"
-          fi
-        fi
+          if [[ "$languages" == *"Python"* ]]; then
+            echo "Setting up Python environment and running Bandit and Flake8..."
+            python -m pip install --upgrade pip
+            if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+            pip install bandit flake8
 
-        if [[ "$languages" == *"YAML"* ]]; then
-          echo "Installing YAMLLint and running it..."
-          sudo apt-get update
-          sudo apt-get install -y yamllint
-          yamllint . | tee yamllint-report.txt
-          yamllint_failed=$?
-          if [ $yamllint_failed -ne 0 ]; then
-            echo "::error file=yamllint-report.txt::YAMLLint found issues"
+            echo "Running Bandit..."
+            bandit -r . | tee bandit-report.txt
+            bandit_failed=$?
+            if [ $bandit_failed -ne 0 ]; then
+              echo "::error file=bandit-report.txt::Bandit found issues"
+            fi
+
+            echo "Running Flake8..."
+            flake8 . | tee flake8-report.txt
+            flake8_failed=$?
+            if [ $flake8_failed -ne 0 ]; then
+              echo "::error file=flake8-report.txt::Flake8 found issues"
+            fi
           fi
-        fi
+
+          if [[ "$languages" == *"YAML"* ]]; then
+            echo "Installing YAMLLint and running it..."
+            sudo apt-get update
+            sudo apt-get install -y yamllint
+            yamllint . | tee yamllint-report.txt
+            yamllint_failed=$?
+            if [ $yamllint_failed -ne 0 ]; then
+              echo "::error file=yamllint-report.txt::YAMLLint found issues"
+            fi
+          fi
 
     - name: Set up environments and run linters (Windows)
       if: runner.os == 'Windows'
@@ -433,4 +432,4 @@ jobs:
         branch: update-dependencies
         base: main
         title: "Dependency updates"
-        body: "This PR updates the dependencies to their latest versions."
+        body: "This PR updates the dependencies to their latest versions." 
