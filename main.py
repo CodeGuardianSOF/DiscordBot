@@ -91,17 +91,17 @@ class MyBot(commands.Bot):
         if self.is_ready():
             logger.debug("Updating status")
             statuses = [
-                "Playing a game",
+                "Playing a game",da
                 "Listening to music",
                 "Watching a movie",
                 "Coding a bot",
                 "Reading a book",
                 "Getting repaired",
                 "Coding myself",
-                "Maintaining Servers",
+                "Maintaining Servers",da
                 "Watching Anime"
             ]
-            await self.change_presence(activity=discord.Game(random.choice(statuses)))
+            await self.change_presence(activity=discord.Game(random.choice(statuses)))da
             logger.info("Status updated")
 
     async def load_extensions(self):
