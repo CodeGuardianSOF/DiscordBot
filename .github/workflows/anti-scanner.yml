@@ -29,6 +29,7 @@ jobs:
         languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
         echo "Detected languages: $languages"
         echo "languages=$languages" >> $GITHUB_ENV
+        echo "::set-output name=languages::$languages"
 
   lint:
     needs: detect-languages
@@ -40,21 +41,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Check for large log files on Linux/macOS
     - name: Check for large log files (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
         find . -name "*.log" -size +1M -exec echo "::error file={}::Log file is larger than 1MB" \;
 
-    # Check for large log files on Windows
     - name: Check for large log files (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
         Get-ChildItem -Path . -Recurse -Filter *.log | Where-Object { $_.Length -gt 1MB } | ForEach-Object { Write-Error "Log file $($_.FullName) is larger than 1MB" }
 
-    # Set up environments and run linters (Linux/macOS)
-    - name: Set up environments and run linters
+    - name: Set up environments and run linters (Linux/macOS)
       if: runner.os != 'Windows'
       shell: bash
       run: |
@@ -84,8 +82,7 @@ jobs:
           fi
         fi
 
-    # Set up environments and run linters (Windows)
-    - name: Set up environments and run linters
+    - name: Set up environments and run linters (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
