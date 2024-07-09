@@ -40,6 +40,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Set up Python (Linux/macOS)
+      if: runner.os != 'Windows'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Set up Python (Windows)
+      if: runner.os == 'Windows'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
     - name: Check for large log files (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
@@ -70,7 +87,7 @@ jobs:
         fi
 
         if [[ "$languages" == *"Python"* ]]; then
-          echo "Setting up Python environment and running Bandit..."
+          echo "Setting up Python environment and running Bandit and Flake8..."
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install bandit flake8
@@ -305,7 +322,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '16'
+        node-version: '18'
 
     - name: Install dependencies and run coverage
       run: |
@@ -338,7 +355,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '16'
+        node-version: '18'
 
     - name: Configure git
       run: |
@@ -363,7 +380,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '16'
+        node-version: '18'
 
     - name: Install dependencies
       run: |
