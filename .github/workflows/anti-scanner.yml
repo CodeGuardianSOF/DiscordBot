@@ -14,21 +14,21 @@ jobs:
     outputs:
       languages: ${{ steps.detect.outputs.languages }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install Linguist
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ruby-full
-        sudo gem install github-linguist
+      - name: Install Linguist
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby-full
+          sudo gem install github-linguist
 
-    - name: Detect languages
-      id: detect
-      run: |
-        languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
-        echo "Detected languages: $languages"
-        echo "::set-output name=languages::$languages"
+      - name: Detect languages
+        id: detect
+        run: |
+          languages=$(github-linguist --breakdown | awk 'BEGIN { FS=": " } /^ {2}[A-Za-z]+: / { print $1 }' | sed 's/^ *//g' | paste -sd "," -)
+          echo "Detected languages: $languages"
+          echo "::set-output name=languages::$languages"
 
   lint:
     needs: detect-languages
